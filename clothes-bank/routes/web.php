@@ -20,6 +20,8 @@ Route::get('/attendance', [ServiceUserController::class, 'getAttendance'])
     ->middleware(['auth', 'verified'])
     ->name('attendance.index');
 
+    
+
 Route::get('/service-users', [ServiceUserController::class, 'allUsersJson'])
     ->middleware(['auth', 'verified'])
     ->name('service-users.all');

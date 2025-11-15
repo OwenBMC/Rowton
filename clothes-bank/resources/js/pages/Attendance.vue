@@ -7,12 +7,83 @@ import Multiselect from 'vue-multiselect';
 import { Head, usePage } from '@inertiajs/vue3';
 import type { AppPageProps as BasePageProps } from '@/types';
 import axios from 'axios';
+import {ElTimePicker} from 'element-plus'
+
+
+const range = (start: number, end: number) =>
+  Array.from({ length: end - start + 1 }, (_, i) => start + i);
+
+const timePickerKey = ref(0)
+
+const pickerOpen = ref(false);
+
+function isAnyPickerOpen() {
+  return pickerOpen.value;
+}
+
+const pickerTicker = setInterval(() => {
+  console.log("ticker", isAnyPickerOpen())
+  if (!isAnyPickerOpen()) {
+    console.log("picker up")
+    timePickerKey.value = timePickerKey.value +1
+  }
+}, 30000)
+
+function getDisabledTimes(record: AttendanceRecord, field: 'arrival' | 'departure') {
+  const now = new Date();
+  const nowHour = now.getHours();
+  const nowMinute = now.getMinutes();
+
+  const arrival = record.arrival_time ? record.arrival_time.split(':') : null;
+  const arrivalHour = arrival ? Number(arrival[0]) : null;
+  const arrivalMinute = arrival ? Number(arrival[1]) : null;
+
+  const departure = record.departure_time ? record.departure_time.split(':') : null;
+  const departureHour = departure ? Number(departure[0]) : null;
+  const departureMinute = departure ? Number(departure[1]) : null;
+
+  return {
+    disabledHours: () => {
+      // rule 1: no selecting future hours
+      const disabled = range(nowHour + 1, 23);
+
+      if (field === 'departure' && arrivalHour !== null) {
+        // rule 2: departure cannot be before arrival
+        disabled.push(...range(0, arrivalHour - 1));
+      }
+
+      return [...new Set(disabled)].filter(h => h >= 0 && h <= 23);
+    },
+
+    disabledMinutes: (hour: number) => {
+      let disabled: number[] = [];
+
+      // rule 3: if choosing the current hour, disable future minutes
+      if (hour === nowHour) {
+        disabled.push(...range(nowMinute + 1, 59));
+      }
+
+      if (field === 'departure' && arrivalHour === hour && arrivalMinute !== null) {
+        // rule 4: departure minutes cannot be before arrival minutes
+        disabled.push(...range(0, arrivalMinute - 1));
+      }
+
+      return [...new Set(disabled)].filter(m => m >= 0 && m <= 59);
+    }
+  };
+}
+
 
 interface ServiceUser {
   id: number;
-  name?: string;
+  name: string;
+  first_name?: string;
+  middle_names?: string;
+  surname?: string;
   nickname?: string;
-  isBlacklisted: boolean
+  isBlacklisted: boolean;
+  attendances: AttendanceRecord[];
+  services_provided: []
 }
 
 interface Toiletry {
@@ -21,10 +92,10 @@ interface Toiletry {
 }
 
 interface AttendanceRecord {
-  id: number;
+  id?: number;
   displayName: string;
-  arrival_time: string;
-  departure_time: string;
+  arrival_time?: string;
+  departure_time?: string;
   services: Record<string, boolean>;
   toiletries: Toiletry[];
   isBlacklisted: boolean;
@@ -79,110 +150,144 @@ const currentDate = ref(page.props.date);
 
 serviceUsersInAttendance.value = serviceUsers.value
   .filter(u => u != null)
-  .map(user => ({
-    id: user.id,
-    displayName: user.name || user.nickname || 'Unknown',
-    arrival_time: '',
-    departure_time: '',
-    services: {},       // your services init
-    toiletries: [],
-    isBlacklisted: user.isBlacklisted || false,
-  }));
-console.log("Service users from prop", JSON.stringify(serviceUsers.value))
-serviceUsers.value.forEach((user: any) => {
-  if (!user) return; // skip null/undefined
-  const attendances = user.attendances || [];
-  const servicesProvided = user.services_provided || [];
+  .map(user => {
+    const attendances = user.attendances || [];
+    const servicesProvided = user.services_provided || [];
 
-  const services: Record<string, boolean> = {};
-  clothingOptions.forEach(item => {
-    services[item] = servicesProvided.some((s: any) => s.service_name === item);
-  });
+    const services: Record<string, boolean> = {};
+    clothingOptions.forEach(item => {
+      services[item] = servicesProvided.some((s: any) => s.service_name === item);
+    });
 
-  serviceUsersInAttendance.value.push({
-    id: user.id ?? Date.now(),
-    displayName: user.name && user.nickname
-      ? `${user.name} (${user.nickname})`
-      : user.name || user.nickname || 'Unknown',
-    arrival_time: attendances[0]?.arrival_time || '',
-    departure_time: attendances[0]?.departure_time || '',
-    services,
-    toiletries: servicesProvided
-      .filter((s: any) => s.category === 'toiletry')
-      .map((s: any) => ({ label: s.service_name, short: s.code || s.service_name })),
-    isBlacklisted: user.isBlacklisted ?? false,
-  });
+    const firstAttendance = attendances[0]; 
 
-  // initialize services map for multi-row syncing
-  if (!userServicesMap[user.id]) {
-    userServicesMap[user.id] = {
-      services: { ...services },
+    return {
+      id: firstAttendance?.id,
+      displayName: user.name,
+      arrival_time: firstAttendance?.arrival_time || '',
+      departure_time: firstAttendance?.departure_time || '',
+      services,
       toiletries: servicesProvided
         .filter((s: any) => s.category === 'toiletry')
         .map((s: any) => ({ label: s.service_name, short: s.code || s.service_name })),
+      isBlacklisted: user.isBlacklisted ?? false,
     };
-  }
-});
+  });
+
+console.log(serviceUsersInAttendance.value)
+
+
 
 function addUserFromInput(value: string) {
-    console.log("addUserFromInput", value)
   const trimmed = value.trim();
   if (!trimmed) return;
 
-  // Ensure the array exists
-  if (!serviceUsersInAttendance.value) {
-    serviceUsersInAttendance.value = [];
+  // Try to find an existing user by ID or name match
+  // We'll assume allServiceUsers contains all DB users
+  const user = allServiceUsers.value.find(u => {
+    const fullName = `${u.first_name ?? ''} ${u.middle_names ?? ''} ${u.surname ?? ''}`.trim();
+    const displayName = u.nickname ? `${fullName} (${u.nickname})` : fullName;
+    return displayName.toLowerCase() === trimmed.toLowerCase();
+  });
+
+  let id: number;
+  let displayName: string;
+
+  if (user) {
+    // Existing user: use their DB ID
+    id = user.id;
+    const fullName = `${user.first_name ?? ''} ${user.middle_names ?? ''} ${user.surname ?? ''}`.trim();
+    displayName = user.nickname ? `${fullName} (${user.nickname})` : fullName;
+  } else {
+    // New user: temporarily generate an ID
+    id = Date.now();
+    displayName = trimmed;
   }
-    console.log("array exists")
-
-  // Try to find the user by name or nickname
-  const user = allServiceUsers.value.find(
-    (u) =>
-      u.name?.toLowerCase() === trimmed.toLowerCase() ||
-      u.nickname?.toLowerCase() === trimmed.toLowerCase()
-  );
-    console.log("user", JSON.stringify(user))
-
-  const id = user?.id ?? Date.now();
-  console.log("id", id)
-  const displayName = user
-    ? user.name && user.nickname
-      ? `${user.name} (${user.nickname})`
-      : user.name || user.nickname || 'Unknown'
-    : trimmed;
 
   // Prevent duplicates
-  const alreadyExists = serviceUsersInAttendance.value.some(a => a.id === id);
-  if (!alreadyExists) {
-    console.log("already doesn't exists")
-    // Initialize services & toiletries if needed
-    const services = userServicesMap[id]?.services || {};
-    const toiletries = userServicesMap[id]?.toiletries || [];
-
-    // Push into attendance array
+  const exists = serviceUsersInAttendance.value.some(a => a.id === id);
+  if (!exists) {
     serviceUsersInAttendance.value.push({
       id,
       displayName,
       arrival_time: '',
       departure_time: '',
-      services,
-      toiletries,
+      services: {},
+      toiletries: [],
       isBlacklisted: user?.isBlacklisted ?? false,
     });
-
-    // Ensure the services map exists for syncing multiple rows
-    if (!userServicesMap[id]) {
-      userServicesMap[id] = {
-        services: services || {},
-        toiletries: toiletries || [],
-      };
-    }
   }
 
-  // Clear input
+  // Prepare payload: must always send a valid DB ID or create a new user first
+  const payload = {
+    date: currentDate.value,
+    attendees: [
+      {
+        id: user?.id ?? null, // null if this is a new user
+        displayName,
+        arrival_time: '',
+        departure_time: '',
+      },
+    ],
+  };
+
+  axios
+    .post('/api/attendance', payload, {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+      },
+    })
+    .then(res => {
+      console.log('Attendance saved:', res.data);
+      // Update local ID if new user was created
+      if (!user && res.data?.createdUserId) {
+        const local = serviceUsersInAttendance.value.find(a => a.id === id);
+        if (local) local.id = res.data.createdUserId;
+      }
+    })
+    .catch(err => {
+      console.error('Error saving attendance:', err.response?.data || err);
+    });
+
   newAttendee.value = '';
 }
 
+
+
+const updateTimeouts = ref<Record<string, number>>({});
+
+function updateAttendance(record: AttendanceRecord, field: 'arrival_time' | 'departure_time') {
+  
+  if (!record.id) {
+    console.warn("Attendance record ID is missing");
+    return;
+  }
+
+  return (visible: boolean) => {
+    if (!visible) { // picker was closed
+      const payload = {
+        id: record.id,
+        [field]: record[field],
+      };
+      console.log("payload", payload);
+
+      axios
+        .post('/api/attendance/update', payload)
+        .then((res) => {
+          console.log(`Attendance ${field} updated:`, res.data);
+        })
+        .catch((err) => {
+          console.error(`Error updating ${field}:`, err.response?.data || err);
+        })
+        .finally(() => {
+          console.log("update complete");
+          // optionally trigger any reactivity like rerendering pickers
+          timePickerKey.value += 1;
+        });
+    }
+  };
+}
 
 let inputTimeout: number | null = null;
 
@@ -224,7 +329,7 @@ async function loadServiceUsers() {
     console.log("su response", response.data)
   } catch (error) {
     console.error('Failed to load service users:', error);
-  }
+  } 
 }
 
 onMounted(() => {
@@ -250,20 +355,8 @@ onMounted(() => {
             <tbody>
                         <tr v-for="record in serviceUsersInAttendance" :key="record.id">
           <td class="border p-2">{{ record.name }}</td>
-          <td class="border p-2">
-            <input
-              type="time"
-              v-model="record.arrival_time"
-              class="border rounded p-1"
-            />
-          </td>
-          <td class="border p-2">
-            <input
-              type="time"
-              v-model="record.departure_time"
-              class="border rounded p-1"
-            />
-          </td>
+
+
           <td class="border p-2 text-gray-500 italic">
             (Add services later)
           </td>
@@ -301,13 +394,31 @@ onMounted(() => {
         <tr v-for="record in serviceUsersInAttendance" :key="record.id">
           <td class="border p-2">{{ record.displayName }}</td>
 
-          <td class="border p-2">
-            <input type="time" v-model="record.arrival_time" class="border rounded p-1" />
-          </td>
+<td class="border p-2">
+  <ElTimePicker
+  :key="`${record.id}_${timePickerKey}`"
+   @visible-change="v => {pickerOpen = v, updateAttendance(record, 'arrival_time')}"
+    v-model="record.arrival_time"
+    @update:model-value="() => updateAttendance(record, 'arrival_time')"
+    value-format="HH:mm"
+    format="HH:mm"
+    :disabled-hours="getDisabledTimes(record, 'arrival').disabledHours"
+    :disabled-minutes="getDisabledTimes(record, 'arrival').disabledMinutes"
+  />
+</td>
 
-          <td class="border p-2">
-            <input type="time" v-model="record.departure_time" class="border rounded p-1" />
-          </td>
+<td class="border p-2">
+    <ElTimePicker
+    :key="`${record.id}_${timePickerKey}`"
+     @visible-change="v => {pickerOpen = v, updateAttendance(record, 'departure_time')}"
+    v-model="record.departure_time"
+    @update:model-value="() => updateAttendance(record, 'departure_time')"
+    value-format="HH:mm"
+    format="HH:mm"
+    :disabled-hours="getDisabledTimes(record, 'departure').disabledHours"
+    :disabled-minutes="getDisabledTimes(record, 'departure').disabledMinutes"
+  />
+</td>
 
           <td class="border p-2 align-top">
               <label class="font-semibold text-sm block mb-1">Clothes:</label>
@@ -342,13 +453,13 @@ onMounted(() => {
   <div
     class="flex items-center px-2 py-1 rounded cursor-pointer"
     :class="{
-      'bg-blue-100 text-blue-800': record.toiletries.some(t => t.short === option.short),
-      'hover:bg-blue-50': !record.toiletries.some(t => t.short === option.short)
+      'bg-blue-100 text-blue-800': record.toiletries?.some(t => t.short === option.short),
+      'hover:bg-blue-50': !record.toiletries?.some(t => t.short === option.short)
     }"
   >
     <span class="flex-1">{{ option.label }} ({{ option.short }})</span>
     <span
-      v-if="record.toiletries.some(t => t.short === option.short)"
+      v-if="record.toiletries?.some(t => t.short === option.short)"
       class="text-blue-600 font-bold ml-2"
     >
       ✔

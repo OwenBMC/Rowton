@@ -4,13 +4,29 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\ServiceProvided;
 
 class ServiceUser extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'nickname', 'housing_status'];
+    protected $fillable = [
+        'first_name',
+        'middle_names',
+        'surname',
+        'nickname',
+        'housing_status',
+    ];
+
+    protected $appends = ['name'];
+
+    public function getNameAttribute(): string
+    {
+        $fullName = trim("{$this->first_name} {$this->middle_names} {$this->surname}");
+
+        return $this->nickname
+            ? "{$fullName} ({$this->nickname})"
+            : $fullName;
+    }
 
     public function attendances()
     {
@@ -34,4 +50,3 @@ class ServiceUser extends Model
         return $this->blacklist()->exists();
     }
 }
-

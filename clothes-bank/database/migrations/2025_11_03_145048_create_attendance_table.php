@@ -17,8 +17,8 @@ return new class extends Migration
             $table->date('attendance_date')->default(now());
             $table->unsignedBigInteger('service_user_id');
             $table->foreign('service_user_id')->references('id')->on('service_users');
-            $table->time('arrival_time');
-            $table->time('departure_time');
+            $table->time('arrival_time')->nullable();
+            $table->time('departure_time')->nullable();
 
         });
     }

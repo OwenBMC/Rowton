@@ -2,9 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -16,21 +15,31 @@ return new class extends Migration
         Schema::create('service_users', function (Blueprint $table) {
             $table->id();
             $table->timestamps();
-            $table->string('name')->nullable();
+            $table->string('first_name')->nullable();
+            $table->string('middle_names')->nullable();
+            $table->string('surname')->nullable();
             $table->string('nickname')->nullable();
             $table->string('housing_status')->default('unknown');
         });
-        DB::statement("
-            ALTER TABLE service_users
-            ADD CONSTRAINT service_users_name_or_nickname_not_null
-            CHECK (name IS NOT NULL OR nickname IS NOT NULL)
-        ");
+        DB::statement('
+    ALTER TABLE service_users
+    ADD CONSTRAINT service_users_name_parts_or_nickname_not_null
+    CHECK (
+        first_name IS NOT NULL 
+        OR middle_names IS NOT NULL 
+        OR surname IS NOT NULL 
+        OR nickname IS NOT NULL
+    )
+');
 
-        DB::statement("
-            ALTER TABLE service_users
-            ADD CONSTRAINT service_users_name_and_nickname_not_equal
-            CHECK (name IS NULL OR nickname IS NULL OR name <> nickname)
-        ");
+        DB::statement('
+    ALTER TABLE service_users
+    ADD CONSTRAINT service_users_full_name_and_nickname_not_equal
+    CHECK (
+        nickname IS NULL 
+        OR (COALESCE(first_name, \'\') || \' \' || COALESCE(middle_names, \'\') || \' \' || COALESCE(surname, \'\')) <> nickname
+    )
+');
     }
 
     /**
