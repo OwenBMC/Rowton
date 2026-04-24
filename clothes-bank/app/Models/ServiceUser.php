@@ -38,6 +38,21 @@ class ServiceUser extends Model
         return $this->hasMany(ServiceProvided::class);
     }
 
+    public function nextOfKin()
+    {
+        return $this->hasOne(NextOfKin::class);
+    }
+
+    public function doctors()
+    {
+        return $this->belongsToMany(Doctor::class, 'doctor_service_user');
+    }
+
+    public function registration()
+    {
+        return $this->hasOne(Registration::class);
+    }
+
     public function blacklist()
     {
         return $this->hasMany(BlackListed::class)

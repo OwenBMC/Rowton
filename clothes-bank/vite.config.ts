@@ -8,8 +8,13 @@ export default defineConfig({
     plugins: [
         laravel({
             input: ['resources/js/app.ts'],
+            publicDirectory: 'public',
             ssr: 'resources/js/ssr.ts',
             refresh: true,
+            server: {
+              host: true,
+              hmr: { host: 'localhost' },
+            },
         }),
         tailwindcss(),
         wayfinder({
@@ -21,6 +26,7 @@ export default defineConfig({
                     base: null,
                     includeAbsolute: false,
                 },
+            
             },
         }),
     ],

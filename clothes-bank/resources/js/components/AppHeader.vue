@@ -66,6 +66,11 @@ const mainNavItems: NavItem[] = [
         href: dashboard(),
         icon: LayoutGrid,
     },
+    {
+        title: 'Attendance',
+        href: '/attendance',
+        icon: LayoutGrid,
+    }
 ];
 
 const rightNavItems: NavItem[] = [
@@ -126,7 +131,7 @@ const rightNavItems: NavItem[] = [
                                         {{ item.title }}
                                     </Link>
                                 </nav>
-                                <div class="flex flex-col space-y-4">
+                                <!-- <div class="flex flex-col space-y-4">
                                     <a
                                         v-for="item in rightNavItems"
                                         :key="item.title"
@@ -142,7 +147,7 @@ const rightNavItems: NavItem[] = [
                                         />
                                         <span>{{ item.title }}</span>
                                     </a>
-                                </div>
+                                </div> -->
                             </div>
                         </SheetContent>
                     </Sheet>

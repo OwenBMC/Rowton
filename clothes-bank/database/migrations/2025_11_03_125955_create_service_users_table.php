@@ -19,6 +19,10 @@ return new class extends Migration
             $table->string('middle_names')->nullable();
             $table->string('surname')->nullable();
             $table->string('nickname')->nullable();
+            $table->string('contact_number', 20)->nullable();
+            $table->string('address')->nullable();
+            $table->string('postcode', 20)->nullable();
+            $table->boolean('food_allergies')->nullable();
             $table->string('housing_status')->default('unknown');
         });
         DB::statement('

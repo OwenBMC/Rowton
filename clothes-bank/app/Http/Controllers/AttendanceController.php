@@ -59,7 +59,6 @@ class AttendanceController extends Controller
     {
         $date = Carbon::parse($request->input('date', now()->toDateString()));
 
-        // Validate that every attendee has a proper service_user_id
         $validated = $request->validate([
             'attendees' => 'required|array',
             'attendees.*.id' => 'required|integer|exists:service_users,id',
@@ -68,7 +67,6 @@ class AttendanceController extends Controller
         ]);
 
         foreach ($validated['attendees'] as $attendee) {
-            // Create or update attendance for that user and date
             Attendance::updateOrCreate(
                 [
                     'service_user_id' => $attendee['id'],

@@ -23,8 +23,15 @@ const mainNavItems: NavItem[] = [
         href: dashboard(),
         icon: LayoutGrid,
     },
+    {
+        title: 'Attendance',
+        href: '/attendance',
+    },
+    {
+        title: 'Documents',
+        href: '/documents'
+    }
 ];
-
 const footerNavItems: NavItem[] = [
     {
         title: 'Github Repo',
@@ -57,10 +64,10 @@ const footerNavItems: NavItem[] = [
             <NavMain :items="mainNavItems" />
         </SidebarContent>
 
-        <SidebarFooter>
+        <!-- <SidebarFooter>
             <NavFooter :items="footerNavItems" />
             <NavUser />
-        </SidebarFooter>
+        </SidebarFooter> -->
     </Sidebar>
     <slot />
 </template>
