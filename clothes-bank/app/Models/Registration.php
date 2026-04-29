@@ -16,5 +16,12 @@ class Registration extends Model
         'referral_date',
         'service_user_signature_date',
         'volunteer_signature_date',
+        'next_of_kin_id',
+        'doctor_id',
     ];
+
+    public function serviceUser()
+    {
+        return $this->belongsTo(ServiceUser::class);
+    }
 }

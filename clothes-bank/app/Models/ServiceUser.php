@@ -15,6 +15,11 @@ class ServiceUser extends Model
         'surname',
         'nickname',
         'housing_status',
+        'contact_number',
+        'address',
+        'postcode',
+        'food_allergies',
+        'dob',
     ];
 
     protected $appends = ['name'];
@@ -41,6 +46,11 @@ class ServiceUser extends Model
     public function nextOfKin()
     {
         return $this->hasOne(NextOfKin::class);
+    }
+
+    public function practices()
+    {
+        return $this->belongsToMany(Practice::class, 'practice_service_user');
     }
 
     public function doctors()

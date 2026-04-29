@@ -126,9 +126,9 @@
     --sidebar: hsl(0 0% 98%);
 }
 
-button.btn.btn-primary {
+/* button.btn.btn-primary {
     background-color: var(--primary);
-}
+} */
 
 .dark {
     --background: hsl(0 0% 3.9%);

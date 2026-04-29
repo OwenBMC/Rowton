@@ -11,10 +11,6 @@ export default defineConfig({
             publicDirectory: 'public',
             ssr: 'resources/js/ssr.ts',
             refresh: true,
-            server: {
-              host: true,
-              hmr: { host: 'localhost' },
-            },
         }),
         tailwindcss(),
         wayfinder({
@@ -26,8 +22,20 @@ export default defineConfig({
                     base: null,
                     includeAbsolute: false,
                 },
-            
             },
         }),
     ],
+
+server: {
+    host: true,
+    port: 5173,
+    strictPort: true,
+
+    cors: {
+        origin: 'http://192.168.1.213:8000',
+        credentials: true,
+    },
+
+    origin: 'http://192.168.1.213:5173',
+},
 });

@@ -1,9 +1,175 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch } from 'vue';
-import { usePage } from '@inertiajs/vue3';
+import { ref, reactive, onMounted, watch, computed } from 'vue';
 import axios from 'axios';
 import AppLayout from '@/layouts/AppLayout.vue';
+import Multiselect from 'vue-multiselect';
 import type { RegistrationFormData } from '@/types/registration';
+
+const practices = ref<any[]>([]);
+const doctors = ref<any[]>([]);
+
+const selectedPractice = ref<any>(null);
+const selectedDoctor = ref<any>(null);
+
+const newPracticeData = reactive({
+  name: '',
+  address_line_1: '',
+  address_line_2: '',
+  city: '',
+  county: '',
+  postcode: '',
+  phone_number: '',
+});
+
+const newDoctorData = reactive({
+  name: '',
+});
+
+const practiceOptions = computed(() => [
+  ...practices.value.map(p => ({
+    label: p.name,
+    value: p.id,
+    practice: p,
+  })),
+  {
+    label: 'Add New Practice',
+    value: null,
+    isAddNew: true,
+  },
+]);
+
+const doctorOptions = computed(() => [
+  ...doctors.value.map(d => ({
+    label: d.name,
+    value: d.id,
+    doctor: d,
+  })),
+  {
+    label: 'Add New Doctor',
+    value: null,
+    isAddNew: true,
+  },
+]);
+
+watch(selectedPractice, async (option) => {
+  if (!option) return;
+
+  // NEW PRACTICE
+  if (option.isAddNew) {
+    Object.assign(newPracticeData, {
+      name: '',
+      address_line_1: '',
+      address_line_2: '',
+      city: '',
+      county: '',
+      postcode: '',
+      phone_number: '',
+    });
+
+    doctors.value = [];
+    selectedDoctor.value = null;
+    return;
+  }
+
+  // EXISTING PRACTICE
+  const p = option.practice;
+
+  Object.assign(newPracticeData, {
+    name: p.name || '',
+    address_line_1: p.address_line_1 || '',
+    address_line_2: p.address_line_2 || '',
+    city: p.city || '',
+    county: p.county || '',
+    postcode: p.postcode || '',
+    phone_number: p.phone_number || '',
+  });
+
+  // load doctors
+  const res = await axios.get(`/api/practices/${p.id}/doctors`);
+  doctors.value = res.data;
+
+  selectedDoctor.value = null;
+});
+
+watch(selectedDoctor, (option) => {
+  if (!option) return;
+
+  if (option.isAddNew) {
+    newDoctorData.name = '';
+    return;
+  }
+
+  const d = option.doctor;
+
+  newDoctorData.name = d.name || '';
+});
+
+const selectedPracticeId = ref<number | null>(null);
+const selectedDoctorId = ref<number | null>(null);
+
+const savePractice = async () => {
+  try {
+    // CREATE
+    if (selectedPractice.value?.isAddNew) {
+      const res = await axios.post('/api/practices', newPracticeData);
+      console.log("practice res", res)
+      selectedPractice.value = {
+        label: newPracticeData.name,
+        value: res.data.id,
+        practice: res.data,
+      };
+    }
+
+    // UPDATE
+    else if (selectedPractice.value?.value) {
+      await axios.put(
+        `/api/practices/${selectedPractice.value.value}`,
+        newPracticeData
+      );
+    }
+
+    successMessage.value = 'Practice saved';
+  } catch (err) {
+    errorMessage.value = 'Failed to save practice';
+  }
+};
+
+const saveDoctor = async () => {
+  try {
+    let practiceId = selectedPractice.value?.value;
+
+    if (!practiceId) {
+      errorMessage.value = 'Select a practice first';
+      return;
+    }
+
+    // CREATE
+    if (selectedDoctor.value?.isAddNew) {
+      const res = await axios.post('/api/doctors', {
+        ...newDoctorData,
+        practice_id: practiceId,
+      });
+
+      selectedDoctor.value = {
+        label: newDoctorData.name,
+        value: res.data.id,
+        doctor: res.data,
+      };
+    }
+
+    // UPDATE
+    else if (selectedDoctor.value?.value) {
+      await axios.put(
+        `/api/doctors/${selectedDoctor.value.value}`,
+        newDoctorData
+      );
+    }
+
+    successMessage.value = 'Doctor saved';
+  } catch (err) {
+    errorMessage.value = 'Failed to save doctor';
+  }
+};
 
 // Inertia props
 const props = defineProps<{
@@ -18,13 +184,10 @@ const props = defineProps<{
   }>;
 }>();
 
-// Use AppLayout
 defineOptions({ layout: AppLayout });
 
-// Today’s date helper
 const todaysDate = new Date().toISOString().split('T')[0];
 
-// Form state
 const form = reactive<RegistrationFormData>({
   first_name: props.service_user?.first_name || '',
   middle_names: props.service_user?.middle_names || '',
@@ -124,18 +287,73 @@ watch(selectedServiceUserId, async (newId) => {
 // Submit
 const submitForm = async () => {
   try {
+    let practiceId = selectedPractice.value?.value;
+    let doctorId = selectedDoctor.value?.value;
+    console.log(practiceId, doctorId)
+    // CREATE PRACTICE (if new)
+    if (selectedPractice.value?.isAddNew) {
+      const res = await axios.post('/api/practices', newPracticeData);
+      practiceId = res.data.id;
+    } else if (practiceId) {
+      // OPTIONAL update existing practice
+      await axios.put(`/api/practices/${practiceId}`, newPracticeData);
+    }
+
+    // CREATE DOCTOR (if new)
+    if (selectedDoctor.value?.isAddNew) {
+      const res = await axios.post('/api/doctors', {
+        ...newDoctorData,
+        practice_id: practiceId,
+      });
+
+      doctorId = res.data.id;
+    } else if (doctorId) {
+      // OPTIONAL update existing doctor
+      await axios.put(`/api/doctors/${doctorId}`, newDoctorData);
+    }
+
+    // attach doctor to registration payload
+    console.log("doctorid", doctorId)
+    console.log("selectedDoctor.value.doctor", selectedDoctor.value.doctor)
+    const payload = {
+      ...form,
+      doctor_id: selectedDoctor.value.doctor.id,    
+    };
+    console.log("payload", payload)
+
     const url = selectedServiceUserId.value
       ? `/api/registration/${selectedServiceUserId.value}`
       : '/api/registration';
 
-    await axios.post(url, form, { withCredentials: true });
+    await axios.post(url, payload, { withCredentials: true });
+
     successMessage.value = 'Registration saved successfully!';
     errorMessage.value = '';
   } catch (err: any) {
-    errorMessage.value = err.response?.data?.message || 'There was a problem saving the registration.';
+    errorMessage.value =
+      err.response?.data?.message ||
+      'There was a problem saving the registration.';
+
     successMessage.value = '';
   }
 };
+
+onMounted(async () => {
+  const res = await axios.get('/api/practices');
+  practices.value = res.data;
+});
+
+let practiceId = selectedPractice?.value;
+let doctorId = selectedDoctor?.value;
+watch(selectedPracticeId, async (id) => {
+  selectedDoctorId.value = null;
+
+  if (!id) return;
+
+  const res = await axios.get(`/api/practices/${id}/doctors`);
+  doctors.value = res.data;
+});
+
 </script>
 
 <template>
@@ -222,23 +440,83 @@ const submitForm = async () => {
         </div>
       </fieldset>
 
-      <!-- DOCTOR -->
-      <fieldset class="mb-6 border p-4 rounded">
-        <legend class="font-semibold mb-2">Doctor</legend>
+<fieldset class="mb-6 border p-4 rounded">
+  <legend class="font-semibold mb-2">Doctor & Practice</legend>
 
-        <div class="mb-3">
-          <label class="block text-sm font-medium mb-1">G.P Name</label>
-          <input v-model="form.gp_name" type="text" class="input" placeholder="Dr. Smith" />
-        </div>
-        <div class="mb-3">
-          <label class="block text-sm font-medium mb-1">Address</label>
-          <input v-model="form.gp_address" type="text" class="input" placeholder="456 Oak Street" />
-        </div>
-        <div class="mb-3">
-          <label class="block text-sm font-medium mb-1">Contact Number</label>
-          <input v-model="form.gp_contact_number" type="text" class="input" placeholder="01234 567890" />
-        </div>
-      </fieldset>
+  <!-- PRACTICE SELECT -->
+  <Multiselect
+    v-model="selectedPractice"
+    :options="practiceOptions"
+    :searchable="true"
+    :close-on-select="true"
+    label="label"
+    track-by="value"
+    placeholder="Search or add practice"
+    class="w-full mb-2"
+  >
+    <template #option="{ option }">
+      <div class="flex justify-between">
+        <span>{{ option.label }}</span>
+        <span v-if="option.isAddNew" class="text-blue-600 text-xs font-semibold">
+          + New
+        </span>
+      </div>
+    </template>
+  </Multiselect>
+
+  <!-- NEW PRACTICE INPUT -->
+<div v-if="selectedPractice" class="space-y-2 mb-4">
+  <input v-model="newPracticeData.name" class="input" placeholder="Practice Name" />
+  <input v-model="newPracticeData.address_line_1" class="input" placeholder="Address Line 1" />
+  <input v-model="newPracticeData.address_line_2" class="input" placeholder="Address Line 2" />
+  <input v-model="newPracticeData.city" class="input" placeholder="City" />
+  <input v-model="newPracticeData.county" class="input" placeholder="County" />
+  <input v-model="newPracticeData.postcode" class="input" placeholder="Postcode" />
+  <input v-model="newPracticeData.phone_number" class="input" placeholder="Phone Number" />
+  <button
+    type="button"
+    class="btn btn-primary"
+    @click="savePractice"
+  >
+    Save Practice
+  </button>
+</div>
+
+  <!-- DOCTOR SELECT -->
+  <Multiselect
+    v-if="selectedPractice && !selectedPractice.isAddNew"
+    v-model="selectedDoctor"
+    :options="doctorOptions"
+    :searchable="true"
+    :close-on-select="true"
+    label="label"
+    track-by="value"
+    placeholder="Search or add doctor"
+    class="w-full mb-2"
+  >
+    <template #option="{ option }">
+      <div class="flex justify-between">
+        <span>{{ option.label }}</span>
+        <span v-if="option.isAddNew" class="text-blue-600 text-xs font-semibold">
+          + New
+        </span>
+      </div>
+    </template>
+  </Multiselect>
+
+  <!-- NEW DOCTOR INPUT -->
+<div v-if="selectedDoctor" class="space-y-2">
+  <input v-model="newDoctorData.name" class="input" placeholder="Doctor Name" />
+    <button
+    type="button"
+    class="btn btn-primary"
+    @click="saveDoctor"
+    :disabled="!selectedPractice"
+  >
+    Save Doctor
+  </button>
+</div>
+</fieldset>
 
       <!-- SIGNATURES -->
       <fieldset class="mb-6 border p-4 rounded">

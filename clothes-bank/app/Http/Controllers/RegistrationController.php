@@ -28,33 +28,22 @@ class RegistrationController extends Controller
         ]);
     }
 
-    /**
-     * Return the registration page data as JSON
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function show(?int $service_user = null)
+    public function show(Registration $registration)
     {
-        $serviceUser = $service_user
-            ? ServiceUser::with(['nextOfKin', 'doctor'])->find($service_user)
-            : null;
-
-        $unregisteredUsers = ServiceUser::doesntHave('registration')
-            ->get(['id', 'first_name', 'middle_names', 'surname', 'nickname'])
-            ->map(fn ($user) => [
-                'id' => $user->id,
-                'name' => $user->name,
-            ]);
+        $registration->load([
+            'serviceUser',
+            'serviceUser.nextOfKin',
+            'serviceUser.doctors.practice',
+        ]);
 
         return response()->json([
-            'service_user' => $serviceUser,
-            'unregistered_users' => $unregisteredUsers,
+            'registration' => $registration,
         ]);
     }
 
     public function showJson($service_user = null)
     {
-        $serviceUser = $service_user ? ServiceUser::with(['nextOfKin', 'doctor'])->find($service_user) : null;
+        $serviceUser = $service_user ? ServiceUser::with(['nextOfKin', 'doctors'])->find($service_user) : null;
 
         return response()->json($serviceUser);
     }
@@ -73,28 +62,31 @@ class RegistrationController extends Controller
             'postcode' => 'nullable|string',
             'contact_number' => 'nullable|string',
             'food_allergies' => 'boolean',
+
             'referral_date' => 'required|date',
-
-            'nok_name' => 'nullable|string|max:255',
-            'nok_relationship' => 'nullable|string|max:255',
-            'nok_address' => 'nullable|string|max:255',
-            'nok_contact_number' => 'nullable|string|max:255',
-
-            'gp_name' => 'nullable|string|max:255',
-            'gp_address' => 'nullable|string|max:255',
-            'gp_contact_number' => 'nullable|string|max:255',
-
             'service_user_signature_date' => 'nullable|date',
             'volunteer_signature_date' => 'nullable|date',
+
+            // IDs
+            'doctor_id' => 'nullable|exists:doctors,id',
         ]);
 
-        // Create service user if not provided
         if (! $service_user) {
             $service_user = ServiceUser::create([
                 'first_name' => $data['first_name'],
                 'middle_names' => $data['middle_names'] ?? null,
                 'surname' => $data['surname'],
-                'nickname' => $data['nickname'] ?? null,
+                'dob' => $data['dob'],
+                'address' => $data['address'],
+                'postcode' => $data['postcode'],
+                'contact_number' => $data['contact_number'] ?? null,
+                'food_allergies' => $data['food_allergies'] ?? false,
+            ]);
+        } else {
+            $service_user->update([
+                'first_name' => $data['first_name'],
+                'middle_names' => $data['middle_names'] ?? null,
+                'surname' => $data['surname'],
                 'dob' => $data['dob'],
                 'address' => $data['address'],
                 'postcode' => $data['postcode'],
@@ -103,38 +95,53 @@ class RegistrationController extends Controller
             ]);
         }
 
-        // Create or update registration
+        $nextOfKinId = null;
+
+        if ($request->filled('nok_name')) {
+            $nok = $service_user->nextOfKin()->updateOrCreate(
+                ['service_user_id' => $service_user->id],
+                [
+                    'name' => $request->nok_name,
+                    'relationship' => $request->nok_relationship,
+                    'address' => $request->nok_address,
+                    'contact_number' => $request->nok_contact_number,
+                ]
+            );
+
+            $nextOfKinId = $nok->id;
+        }
+
+        $doctorId = $data['doctor_id'] ?? null;
+
+        if ($doctorId) {
+            // attach doctor to service user (many-to-many)
+            $service_user->doctors()->syncWithoutDetaching([$doctorId]);
+        }
+
         $registration = Registration::updateOrCreate(
             ['service_user_id' => $service_user->id],
             [
                 'referral_date' => $data['referral_date'],
                 'service_user_signature_date' => $data['service_user_signature_date'] ?? null,
                 'volunteer_signature_date' => $data['volunteer_signature_date'] ?? null,
+
+                'next_of_kin_id' => $nextOfKinId,
+                'doctor_id' => $doctorId,
             ]
         );
 
-        // Handle next of kin
-        if ($request->filled('nok_name')) {
-            $service_user->nextOfKin()->updateOrCreate([], [
-                'name' => $data['nok_name'],
-                'relationship' => $data['nok_relationship'],
-                'address' => $data['nok_address'],
-                'contact_number' => $data['nok_contact_number'],
-            ]);
-        }
-
-        // Handle doctor
-        if ($request->filled('gp_name')) {
-            $service_user->doctors()->updateOrCreate([], [
-                'name' => $data['gp_name'],
-                'address' => $data['gp_address'],
-                'contact_number' => $data['gp_contact_number'],
-            ]);
-        }
-
         return response()->json([
             'message' => 'Registration saved successfully!',
-            'service_user_id' => $service_user->id,
+            'registration_id' => $registration->id,
+        ]);
+    }
+
+    public function view(Registration $registration)
+    {
+        $registration->load('serviceUser');
+
+        return inertia('RegistrationView', [
+            'registration' => $registration,
         ]);
     }
 }

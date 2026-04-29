@@ -30,6 +30,10 @@ const mainNavItems: NavItem[] = [
     {
         title: 'Documents',
         href: '/documents'
+    },
+    {
+        title: 'Service Users',
+        href: '/service-users'
     }
 ];
 const footerNavItems: NavItem[] = [

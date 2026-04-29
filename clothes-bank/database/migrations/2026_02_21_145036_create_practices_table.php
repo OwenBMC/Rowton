@@ -8,17 +8,15 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('doctors', function (Blueprint $table) {
+        Schema::create('practices', function (Blueprint $table) {
             $table->id();
-
-            $table->foreignId('practice_id')
-                ->nullable()
-                ->constrained()
-                ->nullOnDelete();
-
             $table->string('name');
-            $table->string('forename')->nullable();
-            $table->string('speciality')->nullable();
+            $table->string('address_line_1')->nullable();
+            $table->string('address_line_2')->nullable();
+            $table->string('city')->nullable();
+            $table->string('county')->nullable();
+            $table->string('postcode')->nullable();
+            $table->string('country')->default('UK');
             $table->string('phone_number')->nullable();
             $table->string('email')->nullable();
             $table->timestamps();
@@ -27,6 +25,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('doctors');
+        Schema::dropIfExists('practices');
     }
 };

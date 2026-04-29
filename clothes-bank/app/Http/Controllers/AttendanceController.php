@@ -55,6 +55,38 @@ class AttendanceController extends Controller
         ]);
     }
 
+    public function today()
+    {
+        $date = now()->toDateString();
+
+        $users = ServiceUser::with([
+            'attendances' => function ($query) use ($date) {
+                $query->whereDate('attendance_date', $date);
+            },
+        ])->get();
+
+        $result = $users->map(function ($user) {
+            $attendance = $user->attendances->first();
+
+            return [
+                'attendanceId' => $attendance->id ?? null,
+                'userId' => $user->id,
+                'displayName' => $user->name,
+                'arrival_time' => $attendance->arrival_time ?? '',
+                'departure_time' => $attendance->departure_time ?? '',
+                'services' => new \stdClass, // ensures {} not []
+                'toiletries' => [],
+                'isBlacklisted' => $user->is_blacklisted,
+            ];
+        })
+            ->sortBy(function ($item) {
+                return $item['arrival_time'] ?: '23:59';
+            })
+            ->values();
+
+        return response()->json($result);
+    }
+
     public function store(Request $request)
     {
         $date = Carbon::parse($request->input('date', now()->toDateString()));
@@ -66,8 +98,10 @@ class AttendanceController extends Controller
             'attendees.*.departure_time' => 'nullable|string',
         ]);
 
+        $attendanceIds = [];
+
         foreach ($validated['attendees'] as $attendee) {
-            Attendance::updateOrCreate(
+            $attendance = Attendance::updateOrCreate(
                 [
                     'service_user_id' => $attendee['id'],
                     'attendance_date' => $date->toDateString(),
@@ -77,11 +111,17 @@ class AttendanceController extends Controller
                     'departure_time' => $attendee['departure_time'] ?: null,
                 ]
             );
+
+            $attendanceIds[] = [
+                'service_user_id' => $attendee['id'],
+                'attendance_id' => $attendance->id,
+            ];
         }
 
         return response()->json([
             'success' => true,
             'message' => 'Attendance saved successfully',
+            'data' => $attendanceIds,
         ]);
     }
 

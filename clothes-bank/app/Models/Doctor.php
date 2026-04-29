@@ -7,11 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 class Doctor extends Model
 {
     protected $fillable = [
-        'service_user_id',
         'name',
-        'address',
-        'contact_number',
+        'practice_id',
+        'phone_number',
+        'email',
     ];
+
+    public function practice()
+    {
+        return $this->belongsTo(Practice::class);
+    }
 
     public function serviceUsers()
     {

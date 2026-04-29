@@ -5,20 +5,16 @@ use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\ServiceUserController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use Laravel\Fortify\Features;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canRegister' => Features::enabled(Features::registration()),
-    ]);
-})->name('home');
+Route::get('/', [ServiceUserController::class, 'getAttendance'])->name('home');
+// ->middleware(['auth', 'verified'])
 
 Route::get('dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::get('/attendance', [ServiceUserController::class, 'getAttendance'])
-    ->middleware(['auth', 'verified'])
+    // ->middleware(['auth', 'verified'])
     ->name('attendance.index');
 
 Route::get('/registration/{service_user?}', [RegistrationController::class, 'index'])
@@ -36,5 +32,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     );
 
 });
+
+Route::get('/service-users', function () {
+    return Inertia::render('ServiceUsers');
+});
+
+Route::get('/registration/view/{registration}', [RegistrationController::class, 'view']);
 
 require __DIR__.'/settings.php';
