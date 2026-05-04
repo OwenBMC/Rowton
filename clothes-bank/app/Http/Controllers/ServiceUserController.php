@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BlackListed;
 use App\Models\ServiceUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -178,16 +179,28 @@ class ServiceUserController extends Controller
             'postcode' => 'nullable|string|max:255',
 
             'housing_status' => 'nullable|string|max:255',
-            'food_allergies' => 'boolean',
+            'food_allergies' => 'nullable|boolean',
 
-            'is_blacklisted' => 'boolean',
+            'is_blacklisted' => 'nullable|boolean',
         ]);
 
+        if ($data->first()->is_blacklisted) {
+            $blacklist_row = [
+                'service_user_id' => $data->id,
+                'blacklist_start_date' => now()->toDateString(),
+            ];
+            BlackListed->update();
+        }
         $serviceUser->update($data);
 
         return response()->json([
             'message' => 'Service user updated',
             'user' => $serviceUser->load(['blacklist']),
         ]);
+    }
+
+    public function delete(Request $request, ServiceUser $serviceUser)
+    {
+        $serviceUser->delete($serviceUser->id);
     }
 }

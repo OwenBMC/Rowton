@@ -2,6 +2,8 @@
   <Head title="Attendance List" />
 
   <AppLayout :breadcrumbs="breadcrumbs">
+    <h2>{{ localToday }}</h2>
+    <div style="text-align: right;"><p>Total today: {{ totalUniqueAttended }}; Currently Present: {{ currentlyPresentCount }}</p></div>
     <table class="table-auto border-collapse border w-full">
       <thead>
         <tr>
@@ -34,7 +36,7 @@
                 <div class="flex justify-between items-center">
                   <span>{{ option.label }}</span>
                   <span v-if="option.isAddNew" class="text-blue-600 text-xs font-semibold">
-                    + New
+                    {{' '}}+ New
                   </span>
                 </div>
               </template>
@@ -84,7 +86,7 @@
           <td class="border p-2">
             <span>{{ record.displayName }}</span>
             <span v-if="record.isBlacklisted" class="text-red-600 font-semibold ml-2">
-              (Blacklisted)
+              (Barred)
             </span>
           </td>
 
@@ -127,6 +129,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 { title: 'Attendance List', href: '/' },
 ];
 
+const localToday = new Date().toLocaleDateString()
+
 interface ServiceUser {
   id: number;
   name: string;
@@ -167,6 +171,7 @@ const newAttendee = reactive({
 
 const searchQuery = ref('');
 const userOptions = computed(() => {
+  console.log(allServiceUsers)
   let base = [
   {
     label: 'Add New',
@@ -174,7 +179,7 @@ const userOptions = computed(() => {
     isAddNew: true,
   },
     ...allServiceUsers.value?.map(u => ({
-      label: `${u.name}${u.nickname ? ` (${u.nickname})` : ''}`,
+      label: `${u.name}${u.nickname ? ` (${u.nickname})` : ''} ${u.housing_status === 'homeless' ? 'RS': ''}`,
       value: u.id,
       user: u,
     })),
@@ -233,6 +238,16 @@ watch(selectedUser, (option) => {
     newAttendee.surname = parts.slice(-1).join('') || '';
     newAttendee.nickname = user.nickname || '';
   }
+});
+
+const totalUniqueAttended = computed(() => {
+  return new Set(serviceUsersInAttendance.value.map(su => su.userId)).values().toArray().length
+});
+
+const currentlyPresentCount = computed(() => {
+  return new Set(serviceUsersInAttendance.value.filter(
+    record => record.arrival_time && !record.departure_time
+  ).map(su => su.userId)).values().toArray().length;
 });
 
 /**

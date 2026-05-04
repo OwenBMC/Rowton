@@ -195,6 +195,8 @@ const form = reactive<RegistrationFormData>({
   dob: props.service_user?.dob || '',
   address: props.service_user?.address || '',
   postcode: props.service_user?.postcode || '',
+  housing_status: props.service_user?.housing_status || 'unknown',
+  hostel_id: props.service_user?.hostel_id || null,
   contact_number: props.service_user?.contact_number || '',
   food_allergies: props.service_user?.food_allergies || false,
   referral_date: props.service_user?.registration?.referral_date || todaysDate,
@@ -313,22 +315,25 @@ const submitForm = async () => {
     }
 
     // attach doctor to registration payload
+
     console.log("doctorid", doctorId)
-    console.log("selectedDoctor.value.doctor", selectedDoctor.value.doctor)
     const payload = {
       ...form,
-      doctor_id: selectedDoctor.value.doctor.id,    
+      doctor_id: selectedDoctor.value?.doctor.id,    
     };
-    console.log("payload", payload)
+    console.log("about to hit ssuid")
 
     const url = selectedServiceUserId.value
       ? `/api/registration/${selectedServiceUserId.value}`
       : '/api/registration';
 
+    console.log("about to hit backend")
     await axios.post(url, payload, { withCredentials: true });
 
     successMessage.value = 'Registration saved successfully!';
     errorMessage.value = '';
+    window.location.replace("/documents/registration-forms");
+
   } catch (err: any) {
     errorMessage.value =
       err.response?.data?.message ||
@@ -337,11 +342,17 @@ const submitForm = async () => {
     successMessage.value = '';
   }
 };
+const hostels = ref<any[]>([]);
 
 onMounted(async () => {
-  const res = await axios.get('/api/practices');
-  practices.value = res.data;
+  const [practiceRes, hostelRes] = await Promise.all([
+    axios.get('/api/practices'),
+    axios.get('/api/hostels')
+  ]);
+  practices.value = practiceRes.data;
+  hostels.value = hostelRes.data;
 });
+
 
 let practiceId = selectedPractice?.value;
 let doctorId = selectedDoctor?.value;
@@ -352,6 +363,14 @@ watch(selectedPracticeId, async (id) => {
 
   const res = await axios.get(`/api/practices/${id}/doctors`);
   doctors.value = res.data;
+});
+
+watch(() => form.housing_status, (newStatus) => {
+  if (newStatus !== 'hostel') form.hostel_id = null;
+  if (!['housed', 'temporary'].includes(newStatus)) {
+    form.address = '';
+    form.postcode = '';
+  }
 });
 
 </script>
@@ -395,13 +414,36 @@ watch(selectedPracticeId, async (id) => {
           <input v-model="form.dob" type="date" class="input" />
         </div>
         <div class="mb-3">
-          <label class="block text-sm font-medium mb-1">Address</label>
-          <input v-model="form.address" type="text" class="input" placeholder="123 Main Street" />
-        </div>
-        <div class="mb-3">
-          <label class="block text-sm font-medium mb-1">Postcode</label>
-          <input v-model="form.postcode" type="text" class="input" placeholder="AB12 3CD" />
-        </div>
+  <label class="block text-sm font-medium mb-1">Housing Status</label>
+  <select v-model="form.housing_status" class="input">
+    <option value="unknown">Unknown</option>
+    <option value="homeless">Rough Sleeper</option>
+    <option value="hostel">Hostel</option>
+    <option value="housed">Housed</option>
+    <option value="temporary">Temporary</option>
+  </select>
+</div>
+
+<div v-if="form.housing_status === 'hostel'" class="mb-3 p-3 bg-gray-50 border rounded">
+  <label class="block text-sm font-medium mb-1">Select Hostel</label>
+  <select v-model="form.hostel_id" class="input">
+    <option :value="null">Select a hostel...</option>
+    <option v-for="hostel in hostels" :key="hostel.id" :value="hostel.id">
+      {{ hostel.name }}
+    </option>
+  </select>
+</div>
+
+<div v-if="['housed', 'temporary'].includes(form.housing_status)" class="space-y-3 p-3 bg-gray-50 border rounded">
+  <div>
+    <label class="block text-sm font-medium mb-1">Address</label>
+    <input v-model="form.address" type="text" class="input" placeholder="123 Main Street" />
+  </div>
+  <div>
+    <label class="block text-sm font-medium mb-1">Postcode</label>
+    <input v-model="form.postcode" type="text" class="input" placeholder="AB12 3CD" />
+  </div>
+</div>
         <div class="mb-3">
           <label class="block text-sm font-medium mb-1">Contact Number</label>
           <input v-model="form.contact_number" type="text" class="input" placeholder="01234 567890" />

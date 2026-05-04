@@ -15,6 +15,8 @@ defineProps<{
 <template>
     <h1 class="text-3xl font-bold mb-8">Registration Forms</h1>
 
+    <Link href="/registration" class="mb-4 px-3 py-1 bg-blue-600 text-white rounded">New Registration</Link>
+
     <!-- Completed -->
     <div class="mb-12">
       <h2 class="text-xl font-semibold mb-4">Completed Registrations</h2>

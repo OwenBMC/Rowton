@@ -59,11 +59,17 @@ class AttendanceController extends Controller
     {
         $date = now()->toDateString();
 
-        $users = ServiceUser::with([
+        $users = ServiceUser::whereHas('attendances', function ($query) use ($date) {
+            // This filters the USERS: only those with attendance today
+            $query->whereDate('attendance_date', $date);
+        })
+            ->with([
             'attendances' => function ($query) use ($date) {
+                // This filters the LOADED RELATION: ensures $user->attendances only contains today
                 $query->whereDate('attendance_date', $date);
             },
-        ])->get();
+        ])
+            ->get();
 
         $result = $users->map(function ($user) {
             $attendance = $user->attendances->first();
@@ -74,7 +80,7 @@ class AttendanceController extends Controller
                 'displayName' => $user->name,
                 'arrival_time' => $attendance->arrival_time ?? '',
                 'departure_time' => $attendance->departure_time ?? '',
-                'services' => new \stdClass, // ensures {} not []
+                'services' => new \stdClass,
                 'toiletries' => [],
                 'isBlacklisted' => $user->is_blacklisted,
             ];

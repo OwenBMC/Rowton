@@ -5,6 +5,7 @@ use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\PracticeController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\ServiceUserController;
+use App\Http\Controllers\HostelController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -26,6 +27,7 @@ Route::get('/service-users/unregistered', [ServiceUserController::class, 'getUnr
 Route::get('/service-users', [ServiceUserController::class, 'index']);
 Route::get('/service-users-full', [ServiceUserController::class, 'fullIndex']);
 Route::put('/service-users/{serviceUser}', [ServiceUserController::class, 'update']);
+Route::delete('/service-users/{serviceUser}', [ServiceUserController::class, 'delete']);
 
 Route::post('/service-users', [ServiceUserController::class, 'store']);
 
@@ -37,6 +39,10 @@ Route::get('/registration/{registration}', [RegistrationController::class, 'show
 Route::get('/practices', [PracticeController::class, 'index']);
 Route::post('/practices', [PracticeController::class, 'store']);
 Route::put('/practices/{practice}', [PracticeController::class, 'update']);
+
+Route::get('/hostels', [HostelController::class, 'index']);
+Route::post('/hostels', [HostelController::class, 'store']);
+Route::put('/hostels/{hostel}', [HostelController::class, 'update']);
 
 Route::get('/practices/{practice}/doctors', [DoctorController::class, 'byPractice']);
 Route::post('/doctors', [DoctorController::class, 'store']);
