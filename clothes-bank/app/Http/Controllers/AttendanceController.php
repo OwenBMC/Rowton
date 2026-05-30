@@ -6,53 +6,43 @@ use App\Models\Attendance;
 use App\Models\ServiceUser;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 
 class AttendanceController extends Controller
 {
     public function index(Request $request)
     {
         $date = $request->query('date', now()->toDateString());
-        $carbonDate = Carbon::parse($date);
 
-        // Eager load related models
-        $serviceUsers = ServiceUser::with([
-            'attendances' => function ($query) use ($carbonDate) {
-                // Only get attendances for the given date
-                $query->whereDate('attendance_date', $carbonDate);
-            },
-            'servicesProvided' => function ($query) use ($carbonDate) {
-                // Only get services for the given date
-                $query->whereDate('attendance_date', $carbonDate);
-            },
-            'blacklist' => function ($query) use ($carbonDate) {
-                $query->whereDate('blacklist_start_date', '<=', $carbonDate)
-                    ->whereDate('blacklist_end_date', '>=', $carbonDate);
-            },
-        ])->get();
+        $users = ServiceUser::whereHas('attendances', function ($query) use ($date) {
+            $query->whereDate('attendance_date', $date);
+        })
+            ->with([
+                'attendances' => function ($query) use ($date) {
+                    $query->whereDate('attendance_date', $date);
+                },
+            ])
+            ->get();
 
-        // Transform for Inertia
-        $props = $serviceUsers = ServiceUser::with(['attendances', 'services_provided'])->get()->map(function ($user) {
+        $result = $users->map(function ($user) {
+            $attendance = $user->attendances->first();
+
             return [
-                'id' => $user->id,
-                'name' => $user->name,
-                'nickname' => $user->nickname,
+                'attendanceId' => $attendance->id ?? null,
+                'userId' => $user->id,
+                'displayName' => $user->name,
+                'arrival_time' => $attendance->arrival_time ?? '',
+                'departure_time' => $attendance->departure_time ?? '',
+                'services' => new \stdClass,
+                'toiletries' => [],
                 'isBlacklisted' => $user->is_blacklisted,
-                'attendances' => $user->attendances->map(function ($attendance) {
-                    return [
-                        'id' => $attendance->id, // this is crucial
-                        'arrival_time' => $attendance->arrival_time,
-                        'departure_time' => $attendance->departure_time,
-                    ];
-                }),
-                'services_provided' => $user->services_provided,
             ];
-        });
+        })
+            ->sortBy(function ($item) {
+                return $item['arrival_time'] ?: '23:59';
+            })
+            ->values();
 
-        return Inertia::render('Attendance', [
-            'serviceUsers' => $props,
-            'date' => $carbonDate->toDateString(),
-        ]);
+        return response()->json($result);
     }
 
     public function today()
@@ -64,11 +54,11 @@ class AttendanceController extends Controller
             $query->whereDate('attendance_date', $date);
         })
             ->with([
-            'attendances' => function ($query) use ($date) {
-                // This filters the LOADED RELATION: ensures $user->attendances only contains today
-                $query->whereDate('attendance_date', $date);
-            },
-        ])
+                'attendances' => function ($query) use ($date) {
+                    // This filters the LOADED RELATION: ensures $user->attendances only contains today
+                    $query->whereDate('attendance_date', $date);
+                },
+            ])
             ->get();
 
         $result = $users->map(function ($user) {
@@ -133,24 +123,31 @@ class AttendanceController extends Controller
 
     public function update(Request $request)
     {
+        $request->validate([
+            'id' => 'required|exists:attendances,id',
+            'date' => 'required|date',
+            'arrival_time' => 'nullable',
+            'departure_time' => 'nullable',
+        ]);
 
-        $attendance = Attendance::findOrFail($request->id);
+        $attendance = Attendance::where('id', $request->id)
+            ->whereDate('attendance_date', $request->date)
+            ->first();
 
-        $updateData = [];
-
-        if ($request->has('arrival_time')) {
-            $updateData['arrival_time'] = $request->arrival_time; // can be null
+        if (! $attendance) {
+            return response()->json([
+                'message' => 'Attendance record not found for this date.',
+            ], 404);
         }
 
-        if ($request->has('departure_time')) {
-            $updateData['departure_time'] = $request->departure_time; // can be null
-        }
-
-        $attendance->update($updateData);
+        $attendance->update([
+            'arrival_time' => $request->arrival_time,
+            'departure_time' => $request->departure_time,
+        ]);
 
         return response()->json([
             'success' => true,
-            'attendance' => $attendance,
+            'data' => $attendance,
         ]);
     }
 }

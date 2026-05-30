@@ -171,6 +171,70 @@ const saveDoctor = async () => {
   }
 };
 
+const selectedHostel = ref<any>(null);
+
+const newHostelData = reactive({
+  name: '',
+  address_line_1: '',
+  address_line_2: '',
+  city: '',
+  county: '',
+  postcode: '',
+  country: '',
+  phone_number: '',
+  email: '',
+});
+
+const hostelOptions = computed(() => [
+  ...hostels.value.map(h => ({
+    label: h.name,
+    value: h.id,
+    hostel: h,
+  })),
+  {
+    label: 'Add New Hostel',
+    value: null,
+    isAddNew: true,
+  },
+]);
+const saveHostel = async () => {
+  console.log("save", selectedHostel)
+  try {
+
+    // CREATE
+    if (selectedHostel.value?.isAddNew) {
+
+      const res = await axios.post('/api/hostels', newHostelData);
+
+      selectedHostel.value = {
+        label: res.data.name,
+        value: res.data.id,
+        hostel: res.data,
+      };
+
+      form.hostel_id = res.data.id;
+
+      // refresh local list
+      hostels.value.push(res.data);
+    }
+
+    // UPDATE
+    else if (selectedHostel.value?.value) {
+
+      await axios.put(
+        `/api/hostels/${selectedHostel.value.value}`,
+        newHostelData
+      );
+    }
+
+    successMessage.value = 'Hostel saved';
+    errorMessage.value = '';
+
+  } catch (err) {
+
+    errorMessage.value = 'Failed to save hostel';
+  }
+};
 // Inertia props
 const props = defineProps<{
   serviceUserId?: number | null;
@@ -196,6 +260,7 @@ const form = reactive<RegistrationFormData>({
   address: props.service_user?.address || '',
   postcode: props.service_user?.postcode || '',
   housing_status: props.service_user?.housing_status || 'unknown',
+  gender: props.service_user?.gender || '',
   hostel_id: props.service_user?.hostel_id || null,
   contact_number: props.service_user?.contact_number || '',
   food_allergies: props.service_user?.food_allergies || false,
@@ -229,6 +294,7 @@ const fetchSelectedUser = async (id: number) => {
     form.middle_names = su.middle_names || '';
     form.surname = su.surname || '';
     form.dob = su.dob || '';
+    form.gender = su.gender;
     form.address = su.address || '';
     form.postcode = su.postcode || '';
     form.contact_number = su.contact_number || '';
@@ -243,6 +309,22 @@ const fetchSelectedUser = async (id: number) => {
     form.referral_date = su.registration?.referral_date || todaysDate;
     form.service_user_signature_date = su.registration?.service_user_signature_date || todaysDate;
     form.volunteer_signature_date = su.registration?.volunteer_signature_date || todaysDate;
+    if (su.hostel) {
+
+    selectedHostel.value = {
+      label: su.hostel.name,
+      value: su.hostel.id,
+      hostel: su.hostel,
+    };
+  
+    Object.assign(newHostelData, {
+      name: su.hostel.name || '',
+      address: su.hostel.address || '',
+      phone_number: su.hostel.phone_number || '',
+    });
+  
+    form.hostel_id = su.hostel.id;
+  }
   } catch (err) {
     console.error(err);
     errorMessage.value = 'Failed to fetch service user details.';
@@ -284,6 +366,48 @@ watch(selectedServiceUserId, async (newId) => {
 
   // Fetch full details from API
   await fetchSelectedUser(newId);
+});
+
+watch(selectedHostel, (option) => {
+  console.log("im watching", option)
+  if (!option) return;
+
+  // ADD NEW
+  if (option.isAddNew) {
+
+    Object.assign(newHostelData, {
+      name: '',
+      address_line_1: '',
+      address_line_2: '',
+      city: '',
+      county: '',
+      postcode: '',
+      country: '',
+      phone_number: '',
+      email: '',
+    });
+
+    form.hostel_id = null;
+
+    return;
+  }
+
+  // EXISTING
+  form.hostel_id = option.value;
+
+  const h = option.hostel;
+  console.log("selected hostel", h)
+  Object.assign(newHostelData, {
+    name: h.name || '',
+    address_line_1: h.address_line_1 || '',
+    address_line_2: h.address_line_2 || '',
+    city: h.city || '',
+    county: h.county || '',
+    postcode: h.postcode || '',
+    country: h.country || '',
+    phone_number: h.phone_number || '',
+    email: h.email || '',
+  });
 });
 
 // Submit
@@ -366,7 +490,22 @@ watch(selectedPracticeId, async (id) => {
 });
 
 watch(() => form.housing_status, (newStatus) => {
-  if (newStatus !== 'hostel') form.hostel_id = null;
+  if (newStatus !== 'hostel') {
+
+    form.hostel_id = null;
+    selectedHostel.value = null;
+
+    Object.assign(newHostelData, {
+      name: '',
+      address: '',
+      phone_number: '',
+    });
+  }
+
+  if (!['housed', 'temporary'].includes(newStatus)) {
+    form.address = '';
+    form.postcode = '';
+  }
   if (!['housed', 'temporary'].includes(newStatus)) {
     form.address = '';
     form.postcode = '';
@@ -414,6 +553,16 @@ watch(() => form.housing_status, (newStatus) => {
           <input v-model="form.dob" type="date" class="input" />
         </div>
         <div class="mb-3">
+
+        <div class="mb-3">
+  <label class="block text-sm font-medium mb-1">Gender</label>
+    <select v-model="form.gender" class="input">
+      <option value="male">Male</option>
+      <option value="female">Female</option>
+      <option value="other">Other</option>
+      <option value="prefer_not_to_say">Prefer not to say</option>
+    </select>
+  </div>
   <label class="block text-sm font-medium mb-1">Housing Status</label>
   <select v-model="form.housing_status" class="input">
     <option value="unknown">Unknown</option>
@@ -424,14 +573,105 @@ watch(() => form.housing_status, (newStatus) => {
   </select>
 </div>
 
-<div v-if="form.housing_status === 'hostel'" class="mb-3 p-3 bg-gray-50 border rounded">
-  <label class="block text-sm font-medium mb-1">Select Hostel</label>
-  <select v-model="form.hostel_id" class="input">
-    <option :value="null">Select a hostel...</option>
-    <option v-for="hostel in hostels" :key="hostel.id" :value="hostel.id">
-      {{ hostel.name }}
-    </option>
-  </select>
+<div
+  v-if="form.housing_status === 'hostel'"
+  class="space-y-3 p-3 bg-gray-50 border rounded"
+>
+  <label class="block text-sm font-medium mb-1">
+    Select Hostel
+  </label>
+
+  <Multiselect
+    v-model="selectedHostel"
+    :options="hostelOptions"
+    :searchable="true"
+    :close-on-select="true"
+    label="label"
+    track-by="value"
+    placeholder="Search or add hostel"
+    class="w-full"
+  >
+    <template #option="{ option }">
+      <div class="flex justify-between">
+        <span>{{ option.label }}</span>
+
+        <span
+          v-if="option.isAddNew"
+          class="text-blue-600 text-xs font-semibold"
+        >
+          + New
+        </span>
+      </div>
+    </template>
+  </Multiselect>
+
+  <!-- Hostel Fields -->
+<div v-if="selectedHostel" class="space-y-2">
+
+  <input
+    v-model="newHostelData.name"
+    class="input"
+    placeholder="Hostel Name"
+  />
+
+  <input
+    v-model="newHostelData.address_line_1"
+    class="input"
+    placeholder="Address Line 1"
+  />
+
+  <input
+    v-model="newHostelData.address_line_2"
+    class="input"
+    placeholder="Address Line 2"
+  />
+
+  <input
+    v-model="newHostelData.city"
+    class="input"
+    placeholder="City"
+  />
+
+  <input
+    v-model="newHostelData.county"
+    class="input"
+    placeholder="County"
+  />
+
+  <input
+    v-model="newHostelData.postcode"
+    class="input"
+    placeholder="Postcode"
+  />
+
+  <input
+    v-model="newHostelData.country"
+    class="input"
+    placeholder="Country"
+  />
+
+  <input
+    v-model="newHostelData.phone_number"
+    class="input"
+    placeholder="Phone Number"
+  />
+
+  <input
+    v-model="newHostelData.email"
+    type="email"
+    class="input"
+    placeholder="Email"
+  />
+
+  <button
+    type="button"
+    class="btn btn-primary"
+    @click="saveHostel"
+  >
+    Save Hostel
+  </button>
+
+</div>
 </div>
 
 <div v-if="['housed', 'temporary'].includes(form.housing_status)" class="space-y-3 p-3 bg-gray-50 border rounded">
@@ -455,7 +695,7 @@ watch(() => form.housing_status, (newStatus) => {
         </div>
 
         <div class="mb-3">
-          <label class="block text-sm font-medium mb-1">Referral Date</label>
+          <label class="block text-sm font-medium mb-1">Date of Registration</label>
           <input v-model="form.referral_date" type="date" class="input" />
         </div>
       </fieldset>
@@ -559,20 +799,6 @@ watch(() => form.housing_status, (newStatus) => {
   </button>
 </div>
 </fieldset>
-
-      <!-- SIGNATURES -->
-      <fieldset class="mb-6 border p-4 rounded">
-        <legend class="font-semibold mb-2">Signatures</legend>
-
-        <div class="mb-3">
-          <label class="block text-sm font-medium mb-1">Service User Signature Date</label>
-          <input v-model="form.service_user_signature_date" type="date" class="input" />
-        </div>
-        <div class="mb-3">
-          <label class="block text-sm font-medium mb-1">Volunteer Signature Date</label>
-          <input v-model="form.volunteer_signature_date" type="date" class="input" />
-        </div>
-      </fieldset>
 
       <button type="submit" class="btn btn-primary">Submit Registration</button>
 

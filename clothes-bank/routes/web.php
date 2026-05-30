@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\RegistrationController;
+use App\Http\Controllers\Reports\AttendanceReportController;
 use App\Http\Controllers\ServiceUserController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -13,6 +14,8 @@ Route::get('dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+Route::get('/reports/attendance', [AttendanceReportController::class, 'index']);
+
 Route::get('/attendance', [ServiceUserController::class, 'getAttendance'])
     // ->middleware(['auth', 'verified'])
     ->name('attendance.index');
@@ -21,6 +24,19 @@ Route::get('/registration/{service_user?}', [RegistrationController::class, 'ind
     ->middleware(['auth', 'verified'])
     ->name('registration.index');
 
+Route::get('/housing-referrals', function () {
+    return Inertia::render('HousingReferralFormsIndex');
+})->name('housing-referrals.index');
+
+Route::get('/housing-referrals/create', function () {
+    return Inertia::render('HousingReferralForm');
+})->name('housing-referrals.create');
+
+Route::get('/housing-referrals/{id}/edit', function ($id) {
+    return Inertia::render('HousingReferralForm', [
+        'id' => $id,
+    ]);
+})->whereNumber('id')->name('housing-referrals.edit');
 Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/documents', function () {
@@ -29,6 +45,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/documents/registration-forms',
         [DocumentController::class, 'registrationForms']
+    );
+    Route::get('/documents/housing-referral-forms',
+        [DocumentController::class, 'HousingReferralForms']
     );
 
 });

@@ -13,8 +13,6 @@ return new class extends Migration
 
             // Basic Fields
             $table->date('referral_date')->nullable();
-            $table->date('service_user_signature_date')->nullable();
-            $table->date('volunteer_signature_date')->nullable();
 
             // Foreign Keys
             $table->foreignId('service_user_id')

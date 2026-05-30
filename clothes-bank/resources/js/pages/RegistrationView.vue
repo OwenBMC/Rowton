@@ -40,7 +40,7 @@ onMounted(async () => {
   <p>Postcode: {{ registration.service_user?.postcode }}</p>
   <p>Contact: {{ registration.service_user?.contact_number }}</p>
   <p v-if="registration.service_user?.food_allergies">Has Food Allergies</p>
-
+  <p>Housing Status: {{ registration.service_user?.housing_status }}</p>
   <!-- NEXT OF KIN -->
   <div class="mt-4" v-if="registration.next_of_kin">
     <h3 class="font-semibold">Next of Kin</h3>
@@ -96,8 +96,6 @@ onMounted(async () => {
     <h3 class="font-semibold">Registration Info</h3>
 
     <p>Referral Date: {{ registration.referral_date }}</p>
-    <p>Service User Signature: {{ registration.service_user_signature_date }}</p>
-    <p>Volunteer Signature: {{ registration.volunteer_signature_date }}</p>
   </div>
 </div>
 

@@ -112,6 +112,21 @@ class ServiceUserController extends Controller
         ]);
     }
 
+    public function getRegistered()
+    {
+        $users = ServiceUser::with('registration')
+            ->get(['id', 'first_name', 'middle_names', 'surname', 'nickname'])
+            ->map(fn ($user) => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'first_name' => $user->first_name,
+                'middle_names' => $user->middle_names,
+                'surname' => $user->surname,
+            ]);
+
+        return response()->json($users);
+    }
+
     public function getUnregistered()
     {
         $users = ServiceUser::doesntHave('registration')
@@ -184,14 +199,21 @@ class ServiceUserController extends Controller
             'is_blacklisted' => 'nullable|boolean',
         ]);
 
-        if ($data->first()->is_blacklisted) {
-            $blacklist_row = [
-                'service_user_id' => $data->id,
-                'blacklist_start_date' => now()->toDateString(),
-            ];
-            BlackListed->update();
-        }
         $serviceUser->update($data);
+
+        // Handle blacklist
+        if (! empty($data['is_blacklisted'])) {
+
+            $serviceUser->blacklist()->updateOrCreate(
+                ['service_user_id' => $serviceUser->id],
+                ['blacklist_start_date' => now()->toDateString()]
+            );
+
+        } else {
+
+            // remove blacklist if unchecked
+            $serviceUser->blacklist()->delete();
+        }
 
         return response()->json([
             'message' => 'Service user updated',

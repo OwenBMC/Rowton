@@ -11,7 +11,7 @@ import axios from 'axios';
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 axios.defaults.withCredentials = true; // Send cookies
-axios.defaults.baseURL = import.meta.env.VITE_APP_URL || 'http://192.168.1.184:8000';
+axios.defaults.baseURL = import.meta.env.VITE_APP_URL || 'http://192.168.1.213:8000';
 console.log(axios.defaults.baseURL)
 
 // Get CSRF cookie first

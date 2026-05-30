@@ -20,6 +20,7 @@ class ServiceUser extends Model
         'postcode',
         'food_allergies',
         'dob',
+        'gender',
     ];
 
     protected $appends = ['name'];

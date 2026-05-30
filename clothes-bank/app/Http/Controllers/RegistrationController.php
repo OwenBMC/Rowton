@@ -58,14 +58,13 @@ class RegistrationController extends Controller
             'middle_names' => 'nullable|string|max:255',
             'surname' => 'required|string|max:255',
             'dob' => 'required|date',
+            'gender' => 'required',
             'address' => 'nullable|string',
             'postcode' => 'nullable|string',
             'contact_number' => 'nullable|string',
             'food_allergies' => 'boolean',
 
             'referral_date' => 'required|date',
-            'service_user_signature_date' => 'nullable|date',
-            'volunteer_signature_date' => 'nullable|date',
 
             // IDs
             'doctor_id' => 'nullable|exists:doctors,id',
@@ -77,6 +76,7 @@ class RegistrationController extends Controller
                 'middle_names' => $data['middle_names'] ?? null,
                 'surname' => $data['surname'],
                 'dob' => $data['dob'],
+                'gender' => $data['gender'],
                 'address' => $data['address'],
                 'postcode' => $data['postcode'],
                 'contact_number' => $data['contact_number'] ?? null,
@@ -88,6 +88,7 @@ class RegistrationController extends Controller
                 'middle_names' => $data['middle_names'] ?? null,
                 'surname' => $data['surname'],
                 'dob' => $data['dob'],
+                'gender' => $data['gender'],
                 'address' => $data['address'],
                 'postcode' => $data['postcode'],
                 'contact_number' => $data['contact_number'] ?? null,
@@ -122,8 +123,6 @@ class RegistrationController extends Controller
             ['service_user_id' => $service_user->id],
             [
                 'referral_date' => $data['referral_date'],
-                'service_user_signature_date' => $data['service_user_signature_date'] ?? null,
-                'volunteer_signature_date' => $data['volunteer_signature_date'] ?? null,
 
                 'next_of_kin_id' => $nextOfKinId,
                 'doctor_id' => $doctorId,

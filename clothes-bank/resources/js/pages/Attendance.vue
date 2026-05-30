@@ -2,7 +2,11 @@
   <Head title="Attendance List" />
 
   <AppLayout :breadcrumbs="breadcrumbs">
-    <h2>{{ localToday }}</h2>
+    <div class="flex items-center gap-3 mb-3">
+      <label class="font-medium">Select Date:</label>
+      <input type="date" v-model="selectedDate" class="border p-1 rounded" />
+    </div>
+    <h2>{{ selectedDate ?? localToday }}</h2>
     <div style="text-align: right;"><p>Total today: {{ totalUniqueAttended }}; Currently Present: {{ currentlyPresentCount }}</p></div>
     <table class="table-auto border-collapse border w-full">
       <thead>
@@ -131,6 +135,25 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const localToday = new Date().toLocaleDateString()
 
+const selectedDate = ref(new Date().toISOString().split('T')[0]);
+
+const isToday = computed(() => {
+  const today = new Date().toISOString().split('T')[0];
+  return selectedDate.value === today;
+});
+
+async function loadAttendance(date: string) {
+  try {
+    const res = await axios.get(`/api/attendance`, {
+      params: { date },
+    });
+
+    serviceUsersInAttendance.value = res.data;
+  } catch (err) {
+    console.error(err);
+  }
+}
+
 interface ServiceUser {
   id: number;
   name: string;
@@ -194,21 +217,30 @@ const userOptions = computed(() => {
   return base
 });
 
+function confirmIfPastDate(action: string): boolean {
+  if (isToday.value) return true;
+
+  return confirm(
+    `You are editing attendance for ${selectedDate.value}, not today.\n\n` +
+    `This action (${action}) will modify historical data. Do you want to continue?`
+  );
+}
+
 onMounted(async () => {
   try {
-    const [attendanceRes, usersRes] = await Promise.all([
-      axios.get('/api/attendance/today'),
-      axios.get('/api/service-users-full'),
-    ]);
-
-    serviceUsersInAttendance.value = attendanceRes.data;
+    const usersRes = await axios.get('/api/service-users-full');
     allServiceUsers.value = usersRes.data;
 
+    await loadAttendance(selectedDate.value);
   } catch (err) {
     console.error(err);
   }
 });
 
+watch(selectedDate, async (newDate, oldDate) => {
+  if (newDate === oldDate) return;
+  await loadAttendance(newDate);
+});
 
 watch(selectedUser, (option) => {
   if (!option) return;
@@ -254,6 +286,7 @@ const currentlyPresentCount = computed(() => {
  * Submit new attendee
  */
 async function addUserFromInput() {
+  if (!confirmIfPastDate('editing data')) return;
   let userId = newAttendee.selectedUserId;
 
   if (!userId) {
@@ -278,7 +311,7 @@ async function addUserFromInput() {
   const today = new Date().toISOString().split('T')[0];
   
   const response = await axios.post('/api/attendance', {
-    date: today,
+    date: selectedDate.value ?? today,
     attendees: [
       {
         id: userId,
@@ -315,6 +348,7 @@ async function addUserFromInput() {
 }
 async function checkoutUser() {
   if (!selectedCheckout.value) return;
+  if (!confirmIfPastDate('editing data')) return;
 
   const record = selectedCheckout.value.record;
   console.log("checkout record", record)
@@ -345,14 +379,17 @@ function getDisabledTimes() {
 }
 
 async function updateAttendance(record) {
-  console.log(record)
+  console.log("hello?")
+  if (!confirmIfPastDate('updating attendance times')) return;
+  console.log("Record", record)
+  console.log("Date", selectedDate.value)
   try {
-    const response = await axios.post('/api/attendance/update', {
+    await axios.post('/api/attendance/update', {
       id: record.attendanceId,
+      date: selectedDate.value,
       arrival_time: record.arrival_time,
       departure_time: record.departure_time,
     });
-
   } catch (error) {
     console.error('Update failed:', error.response?.data || error.message);
   }

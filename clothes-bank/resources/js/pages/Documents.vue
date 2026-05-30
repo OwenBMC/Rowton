@@ -23,6 +23,17 @@ defineOptions({
           View completed registrations and create new ones.
         </p>
       </Link>
+      <Link
+        href="/documents/housing-referral-forms"
+        class="border rounded-xl p-6 shadow hover:shadow-lg transition"
+      >
+        <h2 class="text-xl font-semibold mb-2">
+          Housing Referral Forms
+        </h2>
+        <p class="text-gray-600">
+          View completed housing referrals and create new ones.
+        </p>
+      </Link>
     </div>
   </div>
 </template>

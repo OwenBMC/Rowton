@@ -157,9 +157,9 @@ function updateDob(user, part, value) {
                 <button @click="updateUser(user)" class="bg-blue-600 text-white text-xs py-1 px-2 rounded hover:bg-blue-700">
                   Save
                 </button>
-                <button @click="deleteUser(user)" class="text-red-500 hover:text-red-700 text-[10px] font-bold uppercase">
+                <!-- <button @click="deleteUser(user)" class="text-red-500 hover:text-red-700 text-[10px] font-bold uppercase">
                   Delete
-                </button>
+                </button> -->
               </div>
             </td>
           </tr>

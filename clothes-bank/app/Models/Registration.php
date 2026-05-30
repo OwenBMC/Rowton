@@ -14,10 +14,9 @@ class Registration extends Model
         'contact_number',
         'food_allergies',
         'referral_date',
-        'service_user_signature_date',
-        'volunteer_signature_date',
         'next_of_kin_id',
         'doctor_id',
+        'referral_date',
     ];
 
     public function serviceUser()

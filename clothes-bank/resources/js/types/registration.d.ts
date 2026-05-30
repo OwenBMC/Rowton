@@ -4,7 +4,10 @@ export interface RegistrationFormData {
   middle_names: string;
   surname: string;
   dob: string; // ISO date string: YYYY-MM-DD
+  gender: string;
+  housing_status: string;
   address: string;
+  hostel_id: number | null;
   postcode: string;
   contact_number: string;
   food_allergies?: boolean;

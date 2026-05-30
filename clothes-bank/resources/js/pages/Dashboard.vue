@@ -4,6 +4,7 @@ import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
 import PlaceholderPattern from '../components/PlaceholderPattern.vue';
+import AttendanceReport from './reports/AttendanceReport.vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -40,7 +41,7 @@ const breadcrumbs: BreadcrumbItem[] = [
             <div
                 class="relative min-h-[100vh] flex-1 rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border"
             >
-                <PlaceholderPattern />
+                <AttendanceReport />
             </div>
         </div>
     </AppLayout>
