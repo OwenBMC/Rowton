@@ -13,36 +13,23 @@ class AttendanceController extends Controller
     {
         $date = $request->query('date', now()->toDateString());
 
-        $users = ServiceUser::whereHas('attendances', function ($query) use ($date) {
-            $query->whereDate('attendance_date', $date);
-        })
-            ->with([
-                'attendances' => function ($query) use ($date) {
-                    $query->whereDate('attendance_date', $date);
-                },
-            ])
+        $attendances = Attendance::with('serviceUser')
+            ->whereDate('attendance_date', $date)
+            ->orderBy('arrival_time')
             ->get();
 
-        $result = $users->map(function ($user) {
-            $attendance = $user->attendances->first();
-
+        return $attendances->map(function ($attendance) {
             return [
-                'attendanceId' => $attendance->id ?? null,
-                'userId' => $user->id,
-                'displayName' => $user->name,
+                'attendanceId' => $attendance->id,
+                'userId' => $attendance->service_user_id,
+                'displayName' => $attendance->serviceUser->name,
                 'arrival_time' => $attendance->arrival_time ?? '',
                 'departure_time' => $attendance->departure_time ?? '',
                 'services' => new \stdClass,
                 'toiletries' => [],
-                'isBlacklisted' => $user->is_blacklisted,
+                'isBlacklisted' => $attendance->serviceUser->is_blacklisted,
             ];
-        })
-            ->sortBy(function ($item) {
-                return $item['arrival_time'] ?: '23:59';
-            })
-            ->values();
-
-        return response()->json($result);
+        });
     }
 
     public function today()
@@ -97,16 +84,33 @@ class AttendanceController extends Controller
         $attendanceIds = [];
 
         foreach ($validated['attendees'] as $attendee) {
-            $attendance = Attendance::updateOrCreate(
-                [
+
+            $open = Attendance::where('service_user_id', $attendee['id'])
+                ->whereNull('departure_time')
+                ->latest()
+                ->first();
+
+            // CHECK OUT FLOW
+            if (! empty($attendee['departure_time']) && $open) {
+                $open->update([
+                    'departure_time' => $attendee['departure_time'],
+                ]);
+
+                $attendanceIds[] = [
                     'service_user_id' => $attendee['id'],
-                    'attendance_date' => $date->toDateString(),
-                ],
-                [
-                    'arrival_time' => $attendee['arrival_time'] ?: null,
-                    'departure_time' => $attendee['departure_time'] ?: null,
-                ]
-            );
+                    'attendance_id' => $open->id,
+                ];
+
+                continue;
+            }
+
+            // NEW CHECK-IN FLOW
+            $attendance = Attendance::create([
+                'service_user_id' => $attendee['id'],
+                'attendance_date' => $date->toDateString(),
+                'arrival_time' => $attendee['arrival_time'] ?: now()->format('H:i'),
+                'departure_time' => null,
+            ]);
 
             $attendanceIds[] = [
                 'service_user_id' => $attendee['id'],
