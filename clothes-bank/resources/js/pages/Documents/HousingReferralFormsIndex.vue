@@ -39,7 +39,7 @@
 
     <!-- SECOND SECTION: ELIGIBLE USERS -->
     <h3 class="text-lg font-bold mb-2">
-      Registered Service Users (Eligible for Referral)
+      Registered Service Users
     </h3>
 
     <!-- SEARCH -->

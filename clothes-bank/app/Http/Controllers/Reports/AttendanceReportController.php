@@ -32,10 +32,10 @@ class AttendanceReportController extends Controller
 
         $labels = collect($period)->map(fn ($d) => $d->format('Y-m-d'));
 
-        $query = DB::table('attendance')
-            ->join('service_users', 'service_users.id', '=', 'attendance.service_user_id')
-            ->when($from, fn ($q) => $q->whereDate('attendance.attendance_date', '>=', $from))
-            ->when($to, fn ($q) => $q->whereDate('attendance.attendance_date', '<=', $to));
+        $query = DB::table('attendances')
+            ->join('service_users', 'service_users.id', '=', 'attendances.service_user_id')
+            ->when($from, fn ($q) => $q->whereDate('attendances.attendance_date', '>=', $from))
+            ->when($to, fn ($q) => $q->whereDate('attendances.attendance_date', '<=', $to));
 
         // ---------------------------
         // FILTERS
@@ -84,11 +84,11 @@ class AttendanceReportController extends Controller
 
             $raw = (clone $query)
                 ->select(
-                    'attendance.attendance_date',
+                    'attendances.attendance_date',
                     DB::raw('COUNT(DISTINCT service_users.id) as value')
                 )
-                ->groupBy('attendance.attendance_date')
-                ->pluck('value', 'attendance.attendance_date');
+                ->groupBy('attendances.attendance_date')
+                ->pluck('value', 'attendances.attendance_date');
 
             $filled = $labels->mapWithKeys(fn ($date) => [
                 $date => $raw[$date] ?? 0,
@@ -108,11 +108,11 @@ class AttendanceReportController extends Controller
 
             $rows = (clone $query)
                 ->select(
-                    'attendance.attendance_date',
+                    'attendances.attendance_date',
                     'service_users.gender',
                     DB::raw('COUNT(DISTINCT service_users.id) as value')
                 )
-                ->groupBy('attendance.attendance_date', 'service_users.gender')
+                ->groupBy('attendances.attendance_date', 'service_users.gender')
                 ->get();
 
             $grouped = $rows->groupBy('gender');
@@ -138,11 +138,11 @@ class AttendanceReportController extends Controller
 
             $rows = (clone $query)
                 ->select(
-                    'attendance.attendance_date',
+                    'attendances.attendance_date',
                     'service_users.housing_status',
                     DB::raw('COUNT(DISTINCT service_users.id) as value')
                 )
-                ->groupBy('attendance.attendance_date', 'service_users.housing_status')
+                ->groupBy('attendances.attendance_date', 'service_users.housing_status')
                 ->get();
 
             $grouped = $rows->groupBy('housing_status');
@@ -162,20 +162,20 @@ class AttendanceReportController extends Controller
 
         if ($mode === 'registration') {
 
-            $rows = DB::table('attendance')
-                ->join('service_users', 'service_users.id', '=', 'attendance.service_user_id')
+            $rows = DB::table('attendances')
+                ->join('service_users', 'service_users.id', '=', 'attendances.service_user_id')
                 ->leftJoin('registrations', 'registrations.service_user_id', '=', 'service_users.id')
-                ->when($from, fn ($q) => $q->whereDate('attendance.attendance_date', '>=', $from))
-                ->when($to, fn ($q) => $q->whereDate('attendance.attendance_date', '<=', $to))
+                ->when($from, fn ($q) => $q->whereDate('attendances.attendance_date', '>=', $from))
+                ->when($to, fn ($q) => $q->whereDate('attendances.attendance_date', '<=', $to))
                 ->select(
-                    'attendance.attendance_date',
+                    'attendances.attendance_date',
                     DB::raw("CASE 
                 WHEN registrations.id IS NULL THEN 'unregistered'
                 ELSE 'registered'
             END as reg_status"),
                     DB::raw('COUNT(DISTINCT service_users.id) as value')
                 )
-                ->groupBy('attendance.attendance_date', 'reg_status')
+                ->groupBy('attendances.attendance_date', 'reg_status')
                 ->get();
 
             $grouped = $rows->groupBy('reg_status');
