@@ -16,6 +16,7 @@ return new class extends Migration
             $table->timestamps();
             $table->unsignedBigInteger('service_user_id');
             $table->foreign('service_user_id')->references('id')->on('service_users');
+            $table->text('note')->nullable();
             $table->dateTime('blacklist_start_date')->default(now());
             $table->dateTime('blacklist_end_date')->nullable();
         });
