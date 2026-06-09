@@ -66,9 +66,12 @@ class ServiceUser extends Model
 
     public function blacklist()
     {
-        return $this->hasMany(BlackListed::class)
+        return $this->hasMany(Blacklist::class)
             ->whereDate('blacklist_start_date', '<=', now())
-            ->whereDate('blacklist_end_date', '>=', now());
+            ->where(function ($q) {
+                $q->whereNull('blacklist_end_date')
+                    ->orWhereDate('blacklist_end_date', '>=', now());
+            });
     }
 
     public function getIsBlacklistedAttribute()

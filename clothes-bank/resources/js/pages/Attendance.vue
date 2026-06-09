@@ -53,6 +53,15 @@
               <input v-model="newAttendee.surname" type="text" placeholder="Surname" class="input" />
               <input v-model="newAttendee.nickname" type="text" placeholder="Nickname (optional)" class="input" />
               <button
+              v-if="getActiveBlacklist(selectedUser?.user)"
+              class="bg-red-600 text-white px-2 py-1 mt-2"
+              type="button"
+                @click="handleBlacklistClick"
+              >
+                Barred
+              </button>
+              <button
+                v-else
                 type="button"
                 class="btn btn-primary mt-2"
                 @click="addUserFromInput"
@@ -117,6 +126,64 @@
 
       </tbody>
     </table>
+    <div
+  v-if="blacklistModal"
+  class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+>
+  <div class="bg-white p-6 rounded w-[420px] space-y-4">
+
+    <h2 class="text-lg font-bold text-red-600">
+      Barred User Warning
+    </h2>
+
+    <p class="font-semibold">
+      {{ blacklistModal.user.name }}
+    </p>
+
+    <p>
+      <strong>Reason:</strong>
+      {{ blacklistModal.blacklist.note || 'No reason provided' }}
+    </p>
+
+    <p>
+      <strong>Start date:</strong>
+      {{
+        new Date(blacklistModal.blacklist.blacklist_start_date)
+          .toLocaleDateString()
+      }}
+    </p>
+
+    <p v-if="blacklistModal.blacklist.blacklist_end_date">
+      <strong>Allowed to return from:</strong>
+      {{
+        new Date(blacklistModal.blacklist.blacklist_end_date)
+          .toLocaleDateString()
+      }}
+    </p>
+
+    <p v-else class="text-gray-600">
+      It is not yet decided when they are allowed to return
+    </p>
+
+    <div class="flex justify-end gap-2 mt-4">
+
+      <button
+        class="bg-red-600 text-white px-3 py-1 rounded"
+        @click="refuseEntry"
+      >
+        Refuse Entry
+      </button>
+
+      <button
+        class="bg-green-600 text-white px-3 py-1 rounded"
+        @click="allowEntry"
+      >
+        Allow Entry
+      </button>
+
+    </div>
+  </div>
+</div>
   </AppLayout>
 </template>
 
@@ -325,7 +392,7 @@ async function addUserFromInput() {
     ? `${newAttendee.first_name} ${newAttendee.middle_names} ${newAttendee.surname} (${newAttendee.nickname})`
     : `${newAttendee.first_name} ${newAttendee.middle_names} ${newAttendee.surname}`.trim();
 
-
+  console.log("seleced", selectedUser.value)
   serviceUsersInAttendance.value.push({
     attendanceId: response.data.data[0].attendance_id,
     userId: userId,
@@ -334,7 +401,7 @@ async function addUserFromInput() {
     departure_time: '',
     services: {},
     toiletries: [],
-    isBlacklisted: false,
+    isBlacklisted: getActiveBlacklist(selectedUser.value?.user),
   });
 
   selectedUser.value = null;
@@ -346,6 +413,50 @@ async function addUserFromInput() {
   newAttendee.selectedUserId = null;
   newAttendee.isAddNew = false;
 }
+
+const blacklistModal = ref<null | any>(null);
+
+function allowEntry() {
+  blacklistModal.value = null;
+
+  addUserFromInput()
+}
+
+function refuseEntry() {
+  blacklistModal.value = null;
+
+  selectedUser.value = null;
+}
+
+function getActiveBlacklist(user: any) {
+  if (!user?.blacklist?.length) return null;
+
+  const now = new Date();
+
+  return user.blacklist.find((b: any) => {
+    const startOk = new Date(b.blacklist_start_date) <= now;
+
+    const endOk =
+      !b.blacklist_end_date ||
+      new Date(b.blacklist_end_date) >= now;
+
+    return startOk && endOk;
+  }) || null;
+}
+
+function handleBlacklistClick() {
+  const user = selectedUser.value?.user;
+  if (!user) return;
+
+  const blacklist = getActiveBlacklist(user);
+  if (!blacklist) return;
+
+  blacklistModal.value = {
+    user,
+    blacklist,
+  };
+}
+
 async function checkoutUser() {
   if (!selectedCheckout.value) return;
   if (!confirmIfPastDate('editing data')) return;
@@ -362,12 +473,25 @@ async function checkoutUser() {
 const selectedCheckout = ref<any>(null); 
 
 const activeCheckouts = computed(() => {
-  return serviceUsersInAttendance.value
-    .filter(r => r.arrival_time && !r.departure_time)
-    .map(r => ({
-      label: `${r.displayName} (arrived ${r.arrival_time})`,
-      value: r.id,
-      record: r,
+  const latestAttendancePerUser = new Map();
+
+  serviceUsersInAttendance.value.forEach(record => {
+    const existing = latestAttendancePerUser.get(record.userId);
+
+    if (
+      !existing ||
+      record.attendanceId > existing.attendanceId
+    ) {
+      latestAttendancePerUser.set(record.userId, record);
+    }
+  });
+
+  return Array.from(latestAttendancePerUser.values())
+    .filter(record => record.arrival_time && !record.departure_time)
+    .map(record => ({
+      label: `${record.displayName} (arrived ${record.arrival_time})`,
+      value: record.attendanceId,
+      record,
     }));
 });
 

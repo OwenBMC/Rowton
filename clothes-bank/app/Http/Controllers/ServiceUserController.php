@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\BlackListed;
+use App\Models\Blacklist;
 use App\Models\ServiceUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
