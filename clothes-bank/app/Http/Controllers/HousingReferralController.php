@@ -7,9 +7,15 @@ use Illuminate\Http\Request;
 
 class HousingReferralController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return HousingReferral::with('serviceUser')
+        $query = HousingReferral::with('serviceUser');
+
+        if ($request->filled('date')) {
+            $query->whereDate('created_at', $request->date);
+        }
+
+        return $query
             ->latest()
             ->get();
     }
