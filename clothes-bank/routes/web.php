@@ -50,6 +50,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         [DocumentController::class, 'HousingReferralForms']
     );
 
+    Route::get('/blacklist', function () {
+        return Inertia::render('Blacklist');
+    });
+
 });
 
 Route::get('/service-users', function () {

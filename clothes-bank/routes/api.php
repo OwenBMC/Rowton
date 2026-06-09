@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\BlacklistController;
 use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\HostelController;
 use App\Http\Controllers\HousingReferralController;
@@ -46,8 +47,13 @@ Route::get('/practices/{practice}/doctors', [DoctorController::class, 'byPractic
 Route::post('/doctors', [DoctorController::class, 'store']);
 Route::put('/doctors/{doctor}', [DoctorController::class, 'update']);
 
-// forms
+Route::get('/blacklist', [BlacklistController::class, 'active']);
+Route::get('/blacklist/active/{service_user_id}', [BlacklistController::class, 'activeByUser']);
+Route::get('/blacklist/eligible-users', [BlacklistController::class, 'eligibleUsers']);
+Route::post('/blacklist', [BlacklistController::class, 'store']);
+Route::delete('/blacklist/{id}', [BlacklistController::class, 'destroy']);
 
+// forms
 Route::post('/registration/{service_user?}', [RegistrationController::class, 'submitJson']);
 Route::get('/registration/{registration}', [RegistrationController::class, 'show'])
     ->name('registration.show');

@@ -34,7 +34,11 @@ const mainNavItems: NavItem[] = [
     {
         title: 'Service Users',
         href: '/service-users'
-    }
+    },
+    {
+        title: 'Barred',
+        href: '/blacklist'
+    },
 ];
 const footerNavItems: NavItem[] = [
     {
