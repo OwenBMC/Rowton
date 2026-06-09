@@ -25,31 +25,53 @@ const newDoctorData = reactive({
   name: '',
 });
 
-const practiceOptions = computed(() => [
-  ...practices.value.map(p => ({
-    label: p.name,
-    value: p.id,
-    practice: p,
-  })),
-  {
-    label: 'Add New Practice',
-    value: null,
-    isAddNew: true,
-  },
-]);
+const practiceSearch = ref('');
 
-const doctorOptions = computed(() => [
-  ...doctors.value.map(d => ({
-    label: d.name,
-    value: d.id,
-    doctor: d,
-  })),
-  {
+const practiceOptions = computed(() => {
+  const search = practiceSearch.value.toLowerCase();
+
+  return [
+    {
+      label: 'Add New Practice',
+      value: null,
+      isAddNew: true,
+    },
+    ...practices.value
+      .filter(p =>
+        !search ||
+        p.name.toLowerCase().includes(search)
+      )
+      .map(p => ({
+        label: p.name,
+        value: p.id,
+        practice: p,
+      })),
+  ];
+});
+
+
+const doctorSearch = ref('');
+
+const doctorOptions = computed(() => {
+  const search = doctorSearch.value.toLowerCase();
+
+  return [{
     label: 'Add New Doctor',
     value: null,
     isAddNew: true,
   },
-]);
+  ...doctors.value
+  .filter(d =>
+        !search ||
+        d.name.toLowerCase().includes(search)
+      )
+  .map(d => ({
+    label: d.name,
+    value: d.id,
+    doctor: d,
+  })),
+  ]
+});
 
 watch(selectedPractice, async (option) => {
   if (!option) return;
@@ -185,18 +207,27 @@ const newHostelData = reactive({
   email: '',
 });
 
-const hostelOptions = computed(() => [
-  ...hostels.value.map(h => ({
-    label: h.name,
-    value: h.id,
-    hostel: h,
-  })),
+const hostelSearch = ref('')
+
+const hostelOptions = computed(() => {
+  const search = hostelSearch.value.toLowerCase()
+  return [
   {
     label: 'Add New Hostel',
     value: null,
     isAddNew: true,
   },
-]);
+  ...hostels.value
+  .filter(h =>
+        !search ||
+        h.name.toLowerCase().includes(search)
+      )
+  .map(h => ({
+    label: h.name,
+    value: h.id,
+    hostel: h,
+  })),
+]});
 const saveHostel = async () => {
   console.log("save", selectedHostel)
   try {
@@ -585,6 +616,8 @@ watch(() => form.housing_status, (newStatus) => {
     v-model="selectedHostel"
     :options="hostelOptions"
     :searchable="true"
+    :internal-search="false"
+    @search-change="hostelSearch = $event"
     :close-on-select="true"
     label="label"
     track-by="value"
@@ -730,6 +763,8 @@ watch(() => form.housing_status, (newStatus) => {
     v-model="selectedPractice"
     :options="practiceOptions"
     :searchable="true"
+    :internal-search="false"
+    @search-change="practiceSearch = $event"
     :close-on-select="true"
     label="label"
     track-by="value"
@@ -770,6 +805,8 @@ watch(() => form.housing_status, (newStatus) => {
     v-model="selectedDoctor"
     :options="doctorOptions"
     :searchable="true"
+    :internal-search="false"
+    @search-change="doctorSearch = $event"
     :close-on-select="true"
     label="label"
     track-by="value"
@@ -826,5 +863,13 @@ watch(() => form.housing_status, (newStatus) => {
   background-color: #3b82f6;
   color: white;
   border: none;
+}
+:deep(.multiselect__content-wrapper) {
+  max-height: 250px !important;
+  overflow-y: auto !important;
+}
+
+:deep(.multiselect__content) {
+  max-height: none;
 }
 </style>
