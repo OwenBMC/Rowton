@@ -7,6 +7,7 @@ use App\Http\Controllers\HostelController;
 use App\Http\Controllers\HousingReferralController;
 use App\Http\Controllers\PracticeController;
 use App\Http\Controllers\RegistrationController;
+use App\Http\Controllers\ServicesProvidedController;
 use App\Http\Controllers\ServiceUserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -21,6 +22,11 @@ Route::post('/attendance', [AttendanceController::class, 'store'])
     ->name('attendance.store');
 Route::post('/attendance/update', [AttendanceController::class, 'update'])
     ->name('attendance.update');
+
+Route::get('/services-provided/attendees', [ServicesProvidedController::class, 'attendees']);
+Route::get('/services-provided', [ServicesProvidedController::class, 'index']);
+Route::get('/services-provided/{service_user}', [ServicesProvidedController::class, 'show']);
+Route::post('/services-provided', [ServicesProvidedController::class, 'store']);
 
 Route::get('/service-users/unregistered', [ServiceUserController::class, 'getUnregistered'])->name('service-users.unregistered');
 Route::get('/service-users/registered', [ServiceUserController::class, 'getRegistered'])->name('service-users.registered');

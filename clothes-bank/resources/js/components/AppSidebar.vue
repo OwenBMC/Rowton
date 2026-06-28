@@ -27,6 +27,10 @@ const mainNavItems: NavItem[] = [
         title: 'Attendance',
         href: '/attendance',
     },
+        {
+        title: 'Services Provided',
+        href: '/services-provided',
+    },
     {
         title: 'Documents',
         href: '/documents'

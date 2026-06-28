@@ -10,6 +10,10 @@ use Inertia\Inertia;
 Route::get('/', [ServiceUserController::class, 'getAttendance'])->name('home');
 // ->middleware(['auth', 'verified'])
 
+Route::get('/services-provided', function () {
+    return Inertia::render('Services');
+})->name('services');
+
 Route::get('dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
