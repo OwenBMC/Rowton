@@ -3,6 +3,8 @@ import { ref, reactive, onMounted, computed } from 'vue';
 import axios from 'axios';
 import Multiselect from 'vue-multiselect';
 
+const page = usePage();
+const terminology = page.props.terminology as Record<string, string>;
 
 import {
   Chart as ChartJS,
@@ -14,6 +16,8 @@ import {
 } from 'chart.js';
 
 import { Bar } from 'vue-chartjs';
+import { usePage } from '@inertiajs/vue3';
+
 
 ChartJS.register(
   CategoryScale,
@@ -241,7 +245,7 @@ onMounted(async () => {
       id="service-user-filter-label"
       class="block text-sm font-medium mb-1"
     >
-      Service Users
+      {{terminology.service_user + 's'}}
     </label>
 
     <Multiselect

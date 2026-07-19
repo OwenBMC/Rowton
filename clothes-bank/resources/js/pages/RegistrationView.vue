@@ -2,6 +2,10 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { usePage } from '@inertiajs/vue3';
+
+const page = usePage();
+const terminology = page.props.terminology as Record<string, string>;
 
 defineOptions({
   layout: AppLayout,
@@ -27,7 +31,7 @@ onMounted(async () => {
 <template>
 <div v-if="registration">
   <!-- SERVICE USER -->
-  <h2 class="text-xl font-bold mb-2">Service User</h2>
+  <h2 class="text-xl font-bold mb-2">terminology.service_user</h2>
 
   <p>
     {{ registration.service_user?.first_name }}

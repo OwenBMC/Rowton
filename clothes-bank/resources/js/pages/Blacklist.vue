@@ -2,6 +2,10 @@
 import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { usePage } from '@inertiajs/vue3';
+
+const page = usePage();
+const terminology = page.props.terminology as Record<string, string>;
 
 defineOptions({ layout: AppLayout });
 
@@ -152,7 +156,7 @@ const removeBlacklist = async (entry: any) => {
     <!-- SEARCH USERS -->
     <section>
       <h2 class="text-lg font-semibold mb-3">
-        Search Service Users
+        Search {{terminology.service_user}}
       </h2>
 
       <input

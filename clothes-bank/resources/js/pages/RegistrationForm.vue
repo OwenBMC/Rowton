@@ -4,6 +4,10 @@ import axios from 'axios';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Multiselect from 'vue-multiselect';
 import type { RegistrationFormData } from '@/types/registration';
+import { usePage } from '@inertiajs/vue3';
+
+const page = usePage();
+const terminology = page.props.terminology as Record<string, string>;
 
 const practices = ref<any[]>([]);
 const doctors = ref<any[]>([]);
@@ -358,7 +362,7 @@ const fetchSelectedUser = async (id: number) => {
   }
   } catch (err) {
     console.error(err);
-    errorMessage.value = 'Failed to fetch service user details.';
+    errorMessage.value = 'Failed to fetch ${terminology.service_user} details.';
   }
 };
 
@@ -547,7 +551,7 @@ watch(() => form.housing_status, (newStatus) => {
 
 <template>
   <div class="m-2">
-    <h1 class="text-2xl font-bold mb-6">Service User Registration</h1>
+    <h1 class="text-2xl font-bold mb-6">{{terminology.service_user}} Registration</h1>
 
     <form @submit.prevent="submitForm">
       <!-- SERVICE USER -->

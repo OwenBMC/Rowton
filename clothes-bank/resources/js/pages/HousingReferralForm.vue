@@ -12,7 +12,7 @@
         :options="userOptions"
         label="label"
         track-by="value"
-        placeholder="Select Service User"
+        placeholder="Select ${terminology.service_user}"
         :disabled="isEditMode || userIdFromQuery"
       />
 
@@ -171,6 +171,7 @@ import { router } from '@inertiajs/vue3';
 import { usePage } from '@inertiajs/vue3';
 
 const page = usePage();
+const terminology = page.props.terminology as Record<string, string>;
 
 const referralId = page.props.id ?? null;
 const isEditMode = computed(() => !!referralId);

@@ -39,7 +39,7 @@
 
     <!-- SECOND SECTION: ELIGIBLE USERS -->
     <h3 class="text-lg font-bold mb-2">
-      Registered Service Users
+      Registered {{terminology.service_user + 's'}}
     </h3>
 
     <!-- SEARCH -->
@@ -82,9 +82,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
-import { Head } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { router } from '@inertiajs/vue3';
+
+const page = usePage();
+const terminology = page.props.terminology as Record<string, string>;
 
 const breadcrumbs = [
   { title: 'Housing Referrals', href: '/housing-referrals' },
