@@ -18,12 +18,18 @@ class EligibilityRuleController extends Controller
             'rules' => EligibilityRule::with([
                 'serviceItem',
                 'category',
-                'groups.conditions',
-            ])
+                'conditionGroups.conditions',
+            ])->get(),
+
+            'services' => ServiceItem::where('active', true)
                 ->orderBy('name')
                 ->get(),
 
-            'services' => ServiceItem::where('active', true)
+            'trackedServices' => ServiceItem::with('category')
+                ->where('active', true)
+                ->whereHas('category', function ($query) {
+                    $query->where('track_history', true);
+                })
                 ->orderBy('name')
                 ->get(),
 
@@ -32,6 +38,9 @@ class EligibilityRuleController extends Controller
                 ->get(),
 
             'attributes' => $this->attributes(),
+
+            'enums' => EnumDefinition::all()
+                ->groupBy('group'),
 
         ]);
     }
@@ -214,8 +223,8 @@ class EligibilityRuleController extends Controller
                 'type' => 'enum',
 
                 'operators' => [
-                '=',
-                '!=',
+                    '=',
+                    '!=',
                 ],
 
                 'values' => $this->enumValues(
@@ -231,8 +240,8 @@ class EligibilityRuleController extends Controller
                 'type' => 'enum',
 
                 'operators' => [
-                '=',
-                '!=',
+                    '=',
+                    '!=',
                 ],
 
                 'values' => $this->enumValues(
@@ -248,10 +257,10 @@ class EligibilityRuleController extends Controller
                 'type' => 'date',
 
                 'operators' => [
-                '=',
-                '!=',
-                '>',
-                '<',
+                    '=',
+                    '!=',
+                    '>',
+                    '<',
                 ],
 
                 'values' => [],
@@ -265,21 +274,21 @@ class EligibilityRuleController extends Controller
                 'type' => 'boolean',
 
                 'operators' => [
-                '=',
-                '!=',
+                    '=',
+                    '!=',
                 ],
 
                 'values' => [
 
-                [
-                    'key' => 'yes',
-                    'label' => 'Registered',
-                ],
+                    [
+                        'key' => 'yes',
+                        'label' => 'Registered',
+                    ],
 
-                [
-                    'key' => 'no',
-                    'label' => 'Not Registered',
-                ],
+                    [
+                        'key' => 'no',
+                        'label' => 'Not Registered',
+                    ],
 
                 ],
 

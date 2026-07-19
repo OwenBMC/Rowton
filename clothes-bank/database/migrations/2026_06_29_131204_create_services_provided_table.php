@@ -14,11 +14,17 @@ return new class extends Migration
         Schema::create('services_provided', function (Blueprint $table) {
             $table->id();
             $table->timestamps();
-            $table->string('service_category');
-            $table->string('service_name');
             $table->date('attendance_date')->default(now());
             $table->unsignedBigInteger('service_user_id');
             $table->foreign('service_user_id')->references('id')->on('service_users');
+            $table->foreignId('service_category_id')
+                ->nullable()
+                ->constrained();
+
+            $table->foreignId('service_item_id')
+                ->nullable()
+                ->constrained()
+                ->nullOnDelete();
         });
     }
 

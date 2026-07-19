@@ -119,36 +119,5 @@ class EligibilityRuleSeeder extends Seeder
 
         }
 
-        /*
-         * Toiletries:
-         *
-         * attendance_status = present
-         */
-
-        $toiletries = ServiceCategory::where('name', 'Toiletries')
-            ->first();
-
-        if ($toiletries) {
-
-            $rule = EligibilityRule::create([
-                'service_category_id' => $toiletries->id,
-                'name' => 'Must be currently attending',
-                'active' => true,
-            ]);
-
-            $group = $rule->groups()->create([
-                'operator' => 'AND',
-            ]);
-
-            $group->conditions()->create([
-
-                'attribute' => 'attendance_status',
-                'operator' => '=',
-                'value' => 'present',
-
-            ]);
-
-        }
-
     }
 }

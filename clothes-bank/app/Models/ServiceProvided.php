@@ -9,14 +9,18 @@ class ServiceProvided extends Model
     protected $table = 'services_provided';
 
     protected $fillable = [
-        'service_category',
-        'service_name',
-        'attendance_date',
         'service_user_id',
+        'service_item_id',
+        'attendance_date',
     ];
 
     public function serviceUser()
     {
         return $this->belongsTo(ServiceUser::class);
+    }
+
+    public function serviceItem()
+    {
+        return $this->belongsTo(ServiceItem::class);
     }
 }

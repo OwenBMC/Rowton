@@ -15,6 +15,24 @@ interface Condition {
     value: string;
 }
 
+interface Category {
+    id:number;
+    name:string;
+    track_history:boolean;
+    default_frequency_days:number|null;
+}
+
+interface ServiceItem {
+    id:number;
+    name:string;
+    frequency_days:number|null;
+
+    category?: {
+        id:number;
+        name:string;
+        track_history:boolean;
+    };
+}
 
 interface Group {
     operator: 'AND' | 'OR';
@@ -42,12 +60,13 @@ interface Rule {
 
 const props = defineProps<{
     rules: Rule[];
-    services:any[];
-    categories:any[];
-    attributes:any;
+    services: ServiceItem[];
+    trackedServices: ServiceItem[];
+    categories: Category[];
+    attributes:any[];
 }>();
 
-
+console.log(props)
 
 const form = ref({
 
@@ -111,7 +130,26 @@ function addGroup()
     );
 }
 
+function updateCategoryFrequency(category:Category)
+{
+    router.put(
+        `/admin/settings/services/categories/${category.id}/frequency`,
+        {
+            track_history: category.track_history,
+            default_frequency_days: category.default_frequency_days,
+        }
+    );
+}
 
+function updateItemFrequency(item:ServiceItem)
+{
+    router.put(
+        `/admin/settings/services/items/${item.id}/frequency`,
+        {
+            frequency_days:item.frequency_days,
+        }
+    );
+}
 
 function removeGroup(index:number)
 {
@@ -209,7 +247,117 @@ function remove(rule:Rule)
 
 
 <template>
+<div class="border rounded-lg p-5 mb-8">
 
+<h2 class="font-semibold mb-4">
+    Service frequency limits
+</h2>
+
+
+<div
+    v-for="category in categories"
+    :key="category.id"
+    class="flex items-center gap-4 mb-3"
+>
+
+
+<div class="w-48">
+    {{ category.name }}
+</div>
+
+
+<label class="flex items-center gap-2">
+
+<input
+    type="checkbox"
+    v-model="category.track_history"
+>
+
+Track history
+
+</label>
+
+
+
+<div v-if="category.track_history">
+
+<input
+    type="number"
+    min="1"
+    v-model="category.default_frequency_days"
+    class="border rounded px-2 py-1 w-24"
+/>
+<span class="text-sm text-gray-500">
+days
+</span>
+
+</div>
+
+
+
+<button
+    @click="updateCategoryFrequency(category)"
+    class="border rounded px-3 py-1"
+>
+Save
+</button>
+
+
+</div>
+
+<div class="border rounded-lg p-5 mb-8">
+
+<h2 class="font-semibold mb-4">
+    Service item frequency limits
+</h2>
+
+
+<div
+    v-for="service in trackedServices"
+    :key="service.id"
+    class="flex items-center gap-4 mb-3"
+>
+
+    <div class="w-64">
+        <div>
+            {{ service.name }}
+        </div>
+
+        <small class="text-gray-500">
+            {{ service.category?.name }}
+        </small>
+    </div>
+
+
+    <input
+        type="number"
+        min="1"
+        v-model="service.frequency_days"
+        class="border rounded px-2 py-1 w-24"
+    />
+
+
+    <span class="text-sm text-gray-500">
+        days
+    </span>
+
+
+    <button
+        @click="updateItemFrequency(service)"
+        class="border rounded px-3 py-1"
+    >
+        Save
+    </button>
+
+</div>
+
+
+
+
+
+</div>
+
+</div>
 <div class="p-6 max-w-6xl">
 
 

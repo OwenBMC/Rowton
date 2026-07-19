@@ -9,12 +9,14 @@ class ServiceCategory extends Model
     protected $fillable = [
         'name',
         'management_type',
-        'track_history',
         'active',
+        'track_history',
+        'default_frequency_days',
     ];
 
     protected $casts = [
         'active' => 'boolean',
+        'track_history' => 'boolean',
     ];
 
     public function eligibilityRules()
@@ -25,6 +27,11 @@ class ServiceCategory extends Model
     }
 
     public function items()
+    {
+        return $this->hasMany(ServiceItem::class);
+    }
+
+    public function serviceItems()
     {
         return $this->hasMany(ServiceItem::class);
     }

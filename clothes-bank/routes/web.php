@@ -149,6 +149,22 @@ Route::middleware(['auth', 'verified'])
         Route::put('rules/{eligibilityRule}', [EligibilityRuleController::class, 'update']);
 
         Route::delete('rules/{eligibilityRule}', [EligibilityRuleController::class, 'destroy']);
+
+        Route::put(
+            '/services/categories/{serviceCategory}/frequency',
+            [
+                ServiceCategoryController::class,
+                'updateFrequency',
+            ]
+        );
+
+        Route::put(
+            '/services/items/{serviceItem}/frequency',
+            [
+                ServiceItemController::class,
+                'updateFrequency',
+            ]
+        );
     });
 
 Route::get('/service-users', function () {

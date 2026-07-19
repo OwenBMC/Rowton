@@ -77,6 +77,23 @@ class ServiceItemController extends Controller
         return back();
     }
 
+    public function updateFrequency(
+        Request $request,
+        ServiceItem $serviceItem
+    ) {
+        $validated = $request->validate([
+            'frequency_days' => [
+                'nullable',
+                'integer',
+                'min:1',
+            ],
+        ]);
+
+        $serviceItem->update($validated);
+
+        return back();
+    }
+
     public function destroy(ServiceItem $serviceItem)
     {
         $serviceItem->delete();

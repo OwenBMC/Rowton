@@ -35,6 +35,24 @@ class ServiceCategoryController extends Controller
         return back();
     }
 
+    public function updateFrequency(
+        Request $request,
+        ServiceCategory $serviceCategory
+    ) {
+        $validated = $request->validate([
+            'track_history' => 'required|boolean',
+            'frequency_days' => [
+                'nullable',
+                'integer',
+                'min:1',
+            ],
+        ]);
+
+        $serviceCategory->update($validated);
+
+        return back();
+    }
+
     public function destroy(ServiceCategory $serviceCategory)
     {
         $serviceCategory->delete();

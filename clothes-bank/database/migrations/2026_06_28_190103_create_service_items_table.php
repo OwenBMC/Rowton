@@ -25,6 +25,9 @@ return new class extends Migration
 
             $table->boolean('active')->default(true);
 
+            $table->integer('frequency_days')
+                ->nullable();
+
             $table->timestamps();
         });
     }

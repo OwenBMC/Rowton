@@ -11,11 +11,15 @@ class ServiceItem extends Model
         'name',
         'short',
         'active',
+        'frequency_days',
     ];
 
     public function category()
     {
-        return $this->belongsTo(ServiceCategory::class);
+        return $this->belongsTo(
+            ServiceCategory::class,
+            'service_category_id'
+        );
     }
 
     public function policy()

@@ -27,6 +27,9 @@ return new class extends Migration
 
             $table->boolean('track_history')->default(false);
 
+            $table->integer('default_frequency_days')
+                ->nullable();
+
             $table->boolean('active')->default(true);
 
             $table->timestamps();

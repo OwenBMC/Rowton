@@ -23,6 +23,10 @@ Route::post('/attendance', [AttendanceController::class, 'store'])
 Route::post('/attendance/update', [AttendanceController::class, 'update'])
     ->name('attendance.update');
 
+Route::get('/services-provided/options', [
+    ServicesProvidedController::class,
+    'options',
+]);
 Route::get('/services-provided/attendees', [ServicesProvidedController::class, 'attendees']);
 Route::get('/services-provided', [ServicesProvidedController::class, 'index']);
 Route::get('/services-provided/{service_user}', [ServicesProvidedController::class, 'show']);

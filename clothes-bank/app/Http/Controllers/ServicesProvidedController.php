@@ -2,113 +2,52 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ServiceCategory;
+use App\Models\ServiceItem;
 use App\Models\ServiceProvided;
 use App\Models\ServiceUser;
+use App\Services\EligibilityService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class ServicesProvidedController extends Controller
 {
+    public function __construct(
+        private EligibilityService $eligibilityService
+    ) {}
+
     public function index(Request $request)
     {
-        $date = $request->input('date', now()->toDateString());
+        $date = $request->input(
+            'date',
+            now()->toDateString()
+        );
 
-        /**
-         * Get ALL rows for the selected day once.
-         * This is the single source of truth.
-         */
-        $todayRows = ServiceProvided::whereDate('attendance_date', $date)->get();
-
-        /**
-         * Group once by user for fast lookup.
-         */
-        $todayByUser = $todayRows->groupBy('service_user_id');
-
-        /**
-         * History used for lastIssued calculation.
-         */
-        $history = ServiceProvided::orderByDesc('attendance_date')
+        $todayRows = ServiceProvided::with('serviceItem.category')
+            ->whereDate('attendance_date', $date)
             ->get()
             ->groupBy('service_user_id');
 
-        /**
-         * We still restrict to users who have data today (your current design choice).
-         * If you later want ALL users, this is where you'd change it.
-         */
-        $todayUserIds = $todayByUser->keys();
+        $users = ServiceUser::whereIn(
+            'id',
+            $todayRows->keys()
+        )
+            ->orderBy('surname')
+            ->get();
 
-        $users = ServiceUser::whereIn('id', $todayUserIds)
-            ->get()
-            ->sortBy(fn ($u) => $u->name ?? '')
-            ->values();
+        return $users->map(function ($user) use ($todayRows) {
 
-        return $users->map(function ($user) use ($todayByUser, $history) {
+            $rows = $todayRows->get(
+                $user->id,
+                collect()
+            );
 
-            $userTodayRows = $todayByUser->get($user->id, collect());
+            $services = [];
 
-            /**
-             * Build clothing map (checkbox state)
-             */
-            $services = $this->buildServicesMap($userTodayRows);
+            foreach ($rows as $row) {
 
-            /**
-             * Toiletries list
-             */
-            $toiletriesMap = collect([
-                ['label' => 'Brush/comb', 'short' => 'B/CB'],
-                ['label' => 'Conditioner', 'short' => 'C'],
-                ['label' => 'Deodorant', 'short' => 'D'],
-                ['label' => 'Sanitary Products', 'short' => 'San'],
-                ['label' => 'Shampoo', 'short' => 'SH'],
-                ['label' => 'Shower Gel', 'short' => 'SG'],
-                ['label' => 'Soap', 'short' => 'S'],
-                ['label' => 'Toothbrush', 'short' => 'TB'],
-                ['label' => 'Toothpaste', 'short' => 'TP'],
-                ['label' => 'Wipes', 'short' => 'W'],
-            ]);
+                $services[$row->service_item_id] = true;
 
-            $toiletries = $userTodayRows
-                ->where('service_category', 'toiletries')
-                ->map(function ($r) use ($toiletriesMap) {
-
-                    return $toiletriesMap->firstWhere('short', $r->service_name);
-
-                })
-                ->filter()
-                ->values();
-
-            /**
-             * Last issued lookup (unchanged logic, but stable source)
-             */
-            $lastIssued = [];
-
-            foreach ($this->clothingOptions() as $item) {
-
-                $previousIssue = $history
-                    ->get($user->id, collect())
-                    ->first(function ($record) use ($item) {
-
-                        return $record->service_category === 'clothing'
-                            && $record->service_name === $item;
-                    });
-
-                if ($previousIssue) {
-
-                    $previousIssueDate = Carbon::parse($previousIssue->attendance_date);
-                    $days = $previousIssueDate->diffInDays(now());
-
-                    $lastIssued[$item] = [
-                        'date' => $previousIssueDate->toDateString(),
-                        'display' => $previousIssueDate->format('d M Y'),
-                        'daysAgo' => match (true) {
-                            $days < 1 => 'Today',
-                            $days < 2 => 'Yesterday',
-                            default => (int) floor($days).' days ago',
-                        },
-                    ];
-                } else {
-                    $lastIssued[$item] = null;
-                }
             }
 
             return [
@@ -117,10 +56,9 @@ class ServicesProvidedController extends Controller
 
                 'services' => $services,
 
-                'toiletries' => $toiletries,
-
-                'lastIssued' => $lastIssued,
+                'eligibility' => $this->buildEligibility($user),
             ];
+
         });
     }
 
@@ -137,12 +75,12 @@ class ServicesProvidedController extends Controller
         return [
             'userId' => $user->id,
             'displayName' => $user->name,
+
             'services' => $this->buildServicesMap($today),
-            'toiletries' => $today->where('service_category', 'toiletries')
-                ->pluck('service_name')
-                ->values(),
 
             'lastIssued' => $this->buildLastIssued($userId),
+
+            'eligibility' => $this->buildEligibility($user),
         ];
     }
 
@@ -170,40 +108,57 @@ class ServicesProvidedController extends Controller
         $validated = $request->validate([
             'service_user_id' => 'required|exists:service_users,id',
             'attendance_date' => 'required|date',
-            'services' => 'array',
-            'toiletries' => 'array',
+            'service_item_id' => 'required|exists:service_items,id',
+            'selected' => 'required|boolean',
+            'override' => 'boolean',
         ]);
 
-        \App\Models\ServiceProvided::query()
-            ->where('service_user_id', $validated['service_user_id'])
-            ->whereDate('attendance_date', $validated['attendance_date'])
-            ->delete();
+        $user = ServiceUser::findOrFail(
+            $validated['service_user_id']
+        );
 
-        foreach ($validated['services'] ?? [] as $service => $selected) {
+        $item = ServiceItem::with('category')
+            ->findOrFail(
+                $validated['service_item_id']
+            );
 
-            if (! $selected) {
-                continue;
-            }
+        if (! $validated['selected']) {
 
-            \App\Models\ServiceProvided::create([
-                'service_user_id' => $validated['service_user_id'],
-                'attendance_date' => $validated['attendance_date'],
-                'service_category' => 'clothing',
-                'service_name' => $service,
+            ServiceProvided::where([
+                'service_user_id' => $user->id,
+                'service_item_id' => $item->id,
+            ])
+                ->whereDate(
+                    'attendance_date',
+                    $validated['attendance_date']
+                )
+                ->delete();
+
+            return response()->json([
+                'allowed' => true,
             ]);
         }
 
-        foreach ($validated['toiletries'] ?? [] as $toiletry) {
+        $result = app(EligibilityService::class)
+            ->check($user, $item);
 
-            \App\Models\ServiceProvided::create([
-                'service_user_id' => $validated['service_user_id'],
-                'attendance_date' => $validated['attendance_date'],
-                'service_category' => 'toiletries',
-                'service_name' => $toiletry['short'],
-            ]);
+        if (! $result->allowed && ! ($validated['override'] ?? false)) {
+
+            return response()->json([
+                'allowed' => false,
+                'reason' => $result->reason,
+            ], 422);
         }
 
-        return response()->json(['success' => true]);
+        ServiceProvided::create([
+            'service_user_id' => $user->id,
+            'service_item_id' => $item->id,
+            'attendance_date' => $validated['attendance_date'],
+        ]);
+
+        return response()->json([
+            'allowed' => true,
+        ]);
     }
 
     public function attendees()
@@ -280,5 +235,40 @@ class ServicesProvidedController extends Controller
         }
 
         return $lastIssued;
+    }
+
+    public function options()
+    {
+        return ServiceCategory::where('active', true)
+            ->with([
+                'items' => function ($query) {
+                    $query->where('active', true)
+                        ->orderBy('name');
+                },
+            ])
+            ->orderBy('name')
+            ->get();
+    }
+
+    private function buildEligibility(ServiceUser $user): array
+    {
+        return ServiceItem::where('active', true)
+            ->with('category')
+            ->get()
+            ->mapWithKeys(function ($item) use ($user) {
+
+                $result = $this->eligibilityService
+                    ->check($user, $item);
+
+                return [
+                    $item->id => [
+                        'allowed' => $result->allowed,
+                        'reason' => $result->reason,
+                        'type' => $result->type,
+                    ],
+                ];
+
+            })
+            ->toArray();
     }
 }

@@ -25,6 +25,11 @@ return new class extends Migration
                 ->constrained()
                 ->cascadeOnDelete();
 
+            $table->foreignId('eligibility_rule_id')
+                ->nullable()
+                ->constrained()
+                ->cascadeOnDelete();
+
             $table->string('name');
 
             $table->boolean('active')

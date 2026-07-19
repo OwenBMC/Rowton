@@ -31,4 +31,11 @@ class EligibilityRule extends Model
             ServiceCategory::class
         );
     }
+
+    public function conditionGroups()
+    {
+        return $this->hasMany(
+            EligibilityRuleGroup::class
+        );
+    }
 }
