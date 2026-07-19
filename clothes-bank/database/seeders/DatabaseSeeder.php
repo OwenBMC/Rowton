@@ -24,6 +24,11 @@ class DatabaseSeeder extends Seeder
             PracticeSeeder::class,
             DoctorSeeder::class,
             HostelSeeder::class,
+            TerminologySeeder::class,
+            EnumDefinitionSeeder::class,
+            ServiceCategorySeeder::class,
+            ServiceItemSeeder::class,
+            EligibilityRuleSeeder::class,
         ]);
     }
 }

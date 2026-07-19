@@ -13,9 +13,12 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-vue-next';
+import { Link, usePage } from '@inertiajs/vue3';
+import { BookOpen, Folder, LayoutGrid, Settings } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
+
+const page = usePage();
+const terminology = page.props.terminology as Record<string, string>;
 
 const mainNavItems: NavItem[] = [
     {
@@ -24,7 +27,7 @@ const mainNavItems: NavItem[] = [
         icon: LayoutGrid,
     },
     {
-        title: 'Attendance',
+        title: terminology.attendance,
         href: '/attendance',
     },
         {
@@ -36,12 +39,19 @@ const mainNavItems: NavItem[] = [
         href: '/documents'
     },
     {
-        title: 'Service Users',
+        title: terminology.service_user,
         href: '/service-users'
     },
     {
-        title: 'Barred',
+        title: terminology.blacklisted,
         href: '/blacklist'
+    },
+];
+const settingsNavItems: NavItem[] = [
+    {
+        title: 'Settings',
+        href: '/admin/settings',
+        icon: Settings,
     },
 ];
 const footerNavItems: NavItem[] = [
@@ -74,8 +84,11 @@ const footerNavItems: NavItem[] = [
 
         <SidebarContent>
             <NavMain :items="mainNavItems" />
-        </SidebarContent>
 
+            <div class="mt-auto">
+                <NavMain :items="settingsNavItems" />
+            </div>
+        </SidebarContent>
         <!-- <SidebarFooter>
             <NavFooter :items="footerNavItems" />
             <NavUser />

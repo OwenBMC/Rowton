@@ -1,9 +1,15 @@
 <?php
 
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\EligibilityRuleController;
+use App\Http\Controllers\EnumDefinitionController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\Reports\AttendanceReportController;
+use App\Http\Controllers\ServiceCategoryController;
+use App\Http\Controllers\ServiceItemController;
 use App\Http\Controllers\ServiceUserController;
+use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\TerminologyController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -59,6 +65,91 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
 });
+
+Route::middleware(['auth', 'verified'])
+    ->prefix('admin/settings')
+    ->group(function () {
+
+        Route::get('/', [SettingsController::class, 'index'])
+            ->name('admin.settings');
+
+        Route::get('/enums', [EnumDefinitionController::class, 'index'])
+            ->name('admin.settings.enums');
+
+        Route::get('/enums/{group}', [EnumDefinitionController::class, 'show']);
+
+        Route::post('/enums/{group}', [EnumDefinitionController::class, 'store']);
+
+        Route::put('/enums/{enumDefinition}', [EnumDefinitionController::class, 'update']);
+
+        Route::delete('/enums/{enumDefinition}', [EnumDefinitionController::class, 'destroy']);
+
+        Route::get('/terminology', [TerminologyController::class, 'index']);
+
+        Route::put('/terminology/{terminology}', [
+            TerminologyController::class,
+            'update',
+        ]);
+
+        Route::get('/services', [
+            ServiceItemController::class,
+            'index',
+        ]);
+
+        Route::post('/services', [
+            ServiceItemController::class,
+            'store',
+        ]);
+
+        Route::put('/services/{serviceItem}', [
+            ServiceItemController::class,
+            'update',
+        ]);
+
+        Route::delete('/services/{serviceItem}', [
+            ServiceItemController::class,
+            'destroy',
+        ]);
+
+        Route::post('/services/categories', [
+            ServiceCategoryController::class,
+            'store',
+        ]);
+
+        Route::put('/services/categories/{serviceCategory}', [
+            ServiceCategoryController::class,
+            'update',
+        ]);
+
+        Route::delete('/services/categories/{serviceCategory}', [
+            ServiceCategoryController::class,
+            'destroy',
+        ]);
+
+        Route::post('/services/items', [
+            ServiceItemController::class,
+            'store',
+        ]);
+
+        Route::put('/services/items/{serviceItem}', [
+            ServiceItemController::class,
+            'update',
+        ]);
+
+        Route::delete('/services/items/{serviceItem}', [
+            ServiceItemController::class,
+            'destroy',
+        ]);
+
+        Route::get('rules', [EligibilityRuleController::class, 'index'])
+            ->name('admin.settings.rules');
+
+        Route::post('rules', [EligibilityRuleController::class, 'store']);
+
+        Route::put('rules/{eligibilityRule}', [EligibilityRuleController::class, 'update']);
+
+        Route::delete('rules/{eligibilityRule}', [EligibilityRuleController::class, 'destroy']);
+    });
 
 Route::get('/service-users', function () {
     return Inertia::render('ServiceUsers');
