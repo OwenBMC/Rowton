@@ -13,41 +13,44 @@ use App\Http\Controllers\TerminologyController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', [ServiceUserController::class, 'getAttendance'])->name('home');
-// ->middleware(['auth', 'verified'])
-
-Route::get('/services-provided', function () {
-    return Inertia::render('Services');
-})->name('services');
-
-Route::get('dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
-
-Route::get('/reports/attendance', [AttendanceReportController::class, 'index']);
-
-Route::get('/attendance', [ServiceUserController::class, 'getAttendance'])
-    // ->middleware(['auth', 'verified'])
-    ->name('attendance.index');
 
 Route::get('/registration/{service_user?}', [RegistrationController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('registration.index');
 
-Route::get('/housing-referrals', function () {
-    return Inertia::render('HousingReferralFormsIndex');
-})->name('housing-referrals.index');
 
-Route::get('/housing-referrals/create', function () {
-    return Inertia::render('HousingReferralForm');
-})->name('housing-referrals.create');
-
-Route::get('/housing-referrals/{id}/edit', function ($id) {
-    return Inertia::render('HousingReferralForm', [
-        'id' => $id,
-    ]);
-})->whereNumber('id')->name('housing-referrals.edit');
 Route::middleware(['auth', 'verified'])->group(function () {
+
+    Route::get('/housing-referrals', function () {
+        return Inertia::render('HousingReferralFormsIndex');
+    })->name('housing-referrals.index');
+
+    Route::get('/housing-referrals/create', function () {
+        return Inertia::render('HousingReferralForm');
+    })->name('housing-referrals.create');
+
+    Route::get('/housing-referrals/{id}/edit', function ($id) {
+        return Inertia::render('HousingReferralForm', [
+            'id' => $id,
+        ]);
+    })->whereNumber('id')->name('housing-referrals.edit');
+
+    Route::get('/', [ServiceUserController::class, 'getAttendance'])->name('home');
+    // ->middleware(['auth', 'verified'])
+    
+    Route::get('/services-provided', function () {
+        return Inertia::render('Services');
+    })->name('services');
+    
+    Route::get('dashboard', function () {
+        return Inertia::render('Dashboard');
+    })->middleware(['auth', 'verified'])->name('dashboard');
+    
+    Route::get('/reports/attendance', [AttendanceReportController::class, 'index']);
+    
+    Route::get('/attendance', [ServiceUserController::class, 'getAttendance'])
+        // ->middleware(['auth', 'verified'])
+        ->name('attendance.index');
 
     Route::get('/documents', function () {
         return Inertia::render('Documents');

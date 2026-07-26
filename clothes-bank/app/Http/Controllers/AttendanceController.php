@@ -73,7 +73,13 @@ class AttendanceController extends Controller
     public function store(Request $request)
     {
         $date = Carbon::parse($request->input('date', now()->toDateString()));
+        /** @var \App\Models\Staff|\App\Models\Volunteer|null $actor */
+    $actor = app('current_actor');
 
+    if ($actor) {
+        $actorName = "{$actor->first_name} {$actor->last_name}";
+        $actorType = class_basename($actor); // Returns 'Staff' or 'Volunteer'
+    }
         $validated = $request->validate([
             'attendees' => 'required|array',
             'attendees.*.id' => 'required|integer|exists:service_users,id',

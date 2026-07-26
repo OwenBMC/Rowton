@@ -29,6 +29,7 @@ class DatabaseSeeder extends Seeder
             ServiceCategorySeeder::class,
             ServiceItemSeeder::class,
             EligibilityRuleSeeder::class,
+            UserAndStaffSeeder::class,
         ]);
     }
 }

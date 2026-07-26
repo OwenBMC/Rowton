@@ -2,7 +2,8 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\Facades\URL;
+use App\Models\Volunteer;
+use Illuminate\Http\Request;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -12,7 +13,29 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Bind 'current_actor' into the container dynamically per request
+        $this->app->scoped('current_actor', function () {
+            /** @var Request $request */
+            $request = app('request');
+            $user = $request->user();
+
+            if (! $user) {
+                return null;
+            }
+
+            // Staff user
+            if ($user->user_type === 'staff') {
+                return $user->staff;
+            }
+
+            // Shared Volunteer account
+            if ($request->hasHeader('X-Volunteer-ID')) {
+                return Volunteer::where('is_active', true)
+                    ->find($request->header('X-Volunteer-ID'));
+            }
+
+            return null;
+        });
     }
 
     /**
@@ -20,8 +43,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if ($this->app->environment('production')) {
-            URL::forceScheme('https');
-        }
+        //
     }
 }

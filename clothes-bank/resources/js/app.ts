@@ -6,13 +6,19 @@ import { createApp, h } from 'vue';
 import { initializeTheme } from './composables/useAppearance';
 import ElementPlus from 'element-plus';
 import 'element-plus/dist/index.css';
+import { createPinia } from 'pinia'
 import axios from 'axios';
+import { router } from '@inertiajs/vue3';
+import { useVolunteerStore } from '@/stores/useVolunteerStore';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 axios.defaults.withCredentials = true; // Send cookies
 axios.defaults.baseURL = import.meta.env.VITE_APP_URL || 'http://192.168.1.213:8000';
 console.log(axios.defaults.baseURL)
+const pinia = createPinia()
+
+
 
 // Get CSRF cookie first
 axios.get('/sanctum/csrf-cookie').then(() => {
@@ -27,6 +33,7 @@ axios.get('/sanctum/csrf-cookie').then(() => {
             createApp({ render: () => h(App, props) })
                 .use(ElementPlus)
                 .use(plugin)
+                .use(pinia)
                 .mount(el);
         },
         progress: {
@@ -37,3 +44,24 @@ axios.get('/sanctum/csrf-cookie').then(() => {
     // Set light/dark mode
     initializeTheme();
 });
+
+router.on('before', (event) => {
+    const volunteerStore = useVolunteerStore();
+    
+    if (volunteerStore.activeVolunteer?.id) {
+        event.detail.visit.headers = {
+            ...event.detail.visit.headers,
+            'X-Volunteer-ID': String(volunteerStore.activeVolunteer.id),
+        };
+    }
+});
+axios.interceptors.request.use((config) => {
+    const volunteerStore = useVolunteerStore();
+    
+    if (volunteerStore.activeVolunteer?.id) {
+        config.headers['X-Volunteer-ID'] = volunteerStore.activeVolunteer.id;
+    }
+    
+    return config;
+});
+
